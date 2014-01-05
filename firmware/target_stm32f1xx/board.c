@@ -48,7 +48,6 @@ const PALConfig pal_default_config =
  *          and before any other initialization.
  */
 void __early_init(void) {
-
   stm32_clock_init();
 }
 
@@ -79,4 +78,6 @@ bool_t mmc_lld_is_write_protected(MMCDriver *mmcp) {
  * @todo    Add your board-specific code, if any.
  */
 void boardInit(void) {
+	SET_OUTPUT(BLUE_LED_PIN);
+	SET_OUTPUT(GREEN_LED_PIN);
 }

@@ -199,3 +199,7 @@ ifeq ($(USE_FWLIB),yes)
 endif
 
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/rules.mk
+
+.PHONY: firmware_flash
+firmware_flash:
+	$(OPENOCD) -f $(TOOLS)/openocd.cfg -c "flash_mcu $(CURDIR)/build/target1.elf"

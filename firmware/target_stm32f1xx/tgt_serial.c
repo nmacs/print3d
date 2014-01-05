@@ -29,9 +29,7 @@
 
 void tgt_serial_init(void)
 {
-  // PA9 and PA10 are routed to USART1.
-  
-  palSetPadMode(GPIOA, 9, PAL_MODE_STM32_ALTERNATE_PUSHPULL);       /* USART1 TX.       */
-  palSetPadMode(GPIOA, 10, PAL_MODE_STM32_ALTERNATE_PUSHPULL);      /* USART1 RX.       */
-
+  // PA9 and PA10 are routed to USART1
+  palSetPadMode(GPIOA, 9,  PAL_MODE_STM32_ALTERNATE_PUSHPULL);       /* USART1 TX.       */
+  palSetPadMode(GPIOA, 10, PAL_MODE_INPUT_PULLUP);                   /* USART1 RX.       */
 }

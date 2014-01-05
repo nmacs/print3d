@@ -40,22 +40,11 @@
 // --------------------------------------------------------------------------
 
 #include <stdint.h>
+#include "config.h"
 
 // --------------------------------------------------------------------------
 // Defines
 // --------------------------------------------------------------------------
-
-#define PIN_DEF(port,pin) (port)<<5 | (pin)
-#define GET_PORT(port_pin) ((port_pin)>>5)
-#define GET_PIN(port_pin) ((port_pin)&0x1F)
-
-#define PORT_A 0
-#define PORT_B 1
-#define PORT_C 2
-
-#define PIO_0 0
-#define PIO_1 1
-#define PIO_2 2
 
 // --------------------------------------------------------------------------
 // Types
@@ -73,6 +62,8 @@ typedef uint8_t port_t;
 void WRITE (port_t port_pin, uint8_t val);
 
 uint8_t READ (port_t port_pin);
+
+void TOGGLE (port_t port_pin);
 
 void SET_OUTPUT(port_t port_pin);
 

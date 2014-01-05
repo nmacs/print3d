@@ -33,6 +33,7 @@
 #define _HALCONF_H_
 
 #include "mcuconf.h"
+#include "config.h"
 
 /**
  * @brief   Enables the TM subsystem.
@@ -303,7 +304,7 @@
  *          default configuration.
  */
 #if !defined(SERIAL_DEFAULT_BITRATE) || defined(__DOXYGEN__)
-#define SERIAL_DEFAULT_BITRATE      38400
+#define SERIAL_DEFAULT_BITRATE      BAUD
 #endif
 
 /**

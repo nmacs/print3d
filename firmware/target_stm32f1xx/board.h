@@ -5,7 +5,7 @@
 #define _BOARD_H_
 
 /*
- * Setup for ST STM32F0-Discovery board.
+ * Setup for ST STM32F1-Discovery board.
  */
 
 /*
@@ -18,6 +18,8 @@
  * MCU type as defined in the ST header file stm32f1xx.h.
  */
 #define STM32F10X_MD_VL
+
+#include "iofuncs.h"
 
 /*
  * IO pins assignments.
@@ -721,10 +723,10 @@
 // *** Note: pin assignments should be defined in config.h, not here
 
 #define PORT_LED1 		GPIOC
-#define PIN_LED1		14  
+#define PIN_LED1		8
 
 #define PORT_LED2 		GPIOC
-#define PIN_LED2		15  
+#define PIN_LED2		9
 
 #if 0
 // X

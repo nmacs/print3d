@@ -17,9 +17,9 @@ static const SerialConfig config =
   0
 #elif defined(STM32F10X_MD_VL)
   BAUD,
-	0,
-	0,
-	0
+  0,
+  USART_CR2_STOP1_BITS | USART_CR2_LINEN,
+  0
 #elif defined(LPC1114) // LPC1114 
   BAUD,
   LCR_WL8 | LCR_STOP1 | LCR_NOPARITY,

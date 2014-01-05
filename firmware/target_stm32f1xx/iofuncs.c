@@ -120,6 +120,22 @@ uint8_t READ (port_t port_pin)
 	}	
 }
 
+void TOGGLE (port_t port_pin)
+{
+	switch (GET_PORT(port_pin))
+	{
+	case 0: 
+		palTogglePad (GPIOA, GET_PIN(port_pin));
+		break;
+	case 1:
+		palTogglePad (GPIOB, GET_PIN(port_pin));
+		break;
+	case 2:
+		palTogglePad (GPIOC, GET_PIN(port_pin));
+		break;
+	}	
+}
+
 void SET_OUTPUT(port_t port_pin)
 {
 	switch (GET_PORT(port_pin))

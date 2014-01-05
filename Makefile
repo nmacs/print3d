@@ -12,8 +12,9 @@ OPENOCD_TAR  := $(TOOLCHAIN)/openocd-0.7.0.tar.bz2
 OPENOCD_DIR  := $(TOOLCHAIN)/openocd-0.7.0
 COMPILER_TAR := $(TOOLCHAIN)/arm-2011.09-69-arm-none-eabi-i686-pc-linux-gnu.tar.bz2
 COMPILER_DIR := $(TOOLCHAIN)/arm-2011.09
-OPENOCD      := $(OPENOCD_DIR)/bin/openocd
+OPENOCD      := $(OPENOCD_DIR)/bin/bin/openocd
 FIRMWARE_DIR := $(ROOT)/firmware/target_stm32f1xx
+TOOLS        := $(ROOT)/tools
 
 TARGET_CC     := $(COMPILER_DIR)/bin/arm-none-eabi-gcc
 TARGET_AR     := $(COMPILER_DIR)/bin/arm-none-eabi-ar
