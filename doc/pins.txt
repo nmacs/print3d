@@ -41,13 +41,13 @@ PORT_C
 	0		(ADC1_10)
 	1		(ADC1_11)
 	2		(ADC1_12)
-	3		(ADC1_13)
+	3		PS_ON_PIN    (ADC1_13)
 	4		Z_DIR_PIN    (ADC1_14)
 	5		Z_ENABLE_PIN (ADC1_15)
 	6		
 	7		
-	8		LED
-	9		LED
+	8		BLUE_LED_PIN
+	9		GREEN_LED_PIN
 	10	
 	11	
 	12	
