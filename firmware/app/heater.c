@@ -451,7 +451,7 @@ void heater_set(heater_t index, uint8_t value) {
 		PWM_SET_VALUE (heaters[index].channel, value);
 		#ifdef	DEBUG
 		if (DEBUG_PID && (debug_flags & DEBUG_PID))
-			sersendf_P(PSTR("PWM{%u = %u}\n"), index, OCR0A);
+			sersendf_P(PSTR("PWM{%u = %u}\n"), index, value);
 		#endif
 	}
 	else {
