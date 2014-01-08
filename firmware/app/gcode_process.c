@@ -413,6 +413,17 @@ void process_gcode_command() {
 				next_target.option_e_relative = 1;
 				break;
 
+			// M17- Enable/Power all stepper motors
+			case 17:
+                                stepper_enable();
+                                x_enable();
+                                y_enable();
+                                z_enable();
+                                e_enable();
+                                break;
+
+                        // M18- Disable all stepper motors
+			case 18:
 			// M84- stop idle hold
 			case 84:
 				stepper_disable();
