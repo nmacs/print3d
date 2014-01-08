@@ -17,7 +17,8 @@ APPSRC = ${APP}/crc.c \
        ${APP}/teaserial.c \
        ${APP}/temp.c \
        ${APP}/timer.c \
-       ${APP}/mendel.c
+       ${APP}/mendel.c \
+       ${APP}/debug.c
 
 
 # Required include directories
