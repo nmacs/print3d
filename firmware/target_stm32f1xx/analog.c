@@ -69,7 +69,7 @@ void analog_init(void)
    * 
    */
   adcStart(&ADCD1, NULL);
-  palSetGroupMode(GPIOA, PAL_PORT_BIT(1) | PAL_PORT_BIT(2), 0, PAL_MODE_INPUT_ANALOG);
+  //palSetGroupMode(GPIOA, PAL_PORT_BIT(1) | PAL_PORT_BIT(2), 0, PAL_MODE_INPUT_ANALOG);
 	
 }
 
