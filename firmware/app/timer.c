@@ -75,6 +75,9 @@ static void timer3_Handler(GPTDriver *gptp)
 {
        //palTogglePad(PORT_LED2, PIN_LED2);
 #endif
+#ifdef DEBUG_LED_PIN
+        TOGGLE(DEBUG_LED_PIN);
+#endif
 	/*
 	clock stuff
 	*/
@@ -141,14 +144,11 @@ ISR(TIMER1_COMPA_vect) {
 /// step timer
 static void timer1_Handler(GPTDriver *gptp)
 {
-#ifdef DEBUG_LED_PIN
-        WRITE(DEBUG_LED_PIN, 1);
+#ifdef DEBUG2_LED_PIN
+        TOGGLE(DEBUG2_LED_PIN);
 #endif
         //palTogglePad(PORT_LED1, PIN_LED1);
         queue_step();
-#ifdef DEBUG_LED_PIN
-        WRITE(DEBUG_LED_PIN, 0);
-#endif
 }
 #endif
 #endif /* ifdef MOTHERBOARD */
