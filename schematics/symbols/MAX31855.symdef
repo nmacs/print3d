@@ -1,0 +1,29 @@
+[labels]
+
+MAX31855
+refdes=U?
+! copryright=2014 Max Nekludov
+! author=Max Nekludov
+! uselicense=unlimited
+! distlicense=GPL
+! description=Thermocouple SPI driver
+! footprint=SO8
+
+[left]
+
+1 GND
+
+2 T-
+3 T+
+
+4 VCC
+
+[right]
+
+7 SO
+6 ! CS
+5 SCK
+
+[nc]
+
+8

@@ -1,0 +1,4 @@
+Vcc	CONN2-1 C?-1 U?-4 
+unnamed_net2	CONN?-2 U?-3 
+unnamed_net1	CONN?-1 U?-2 
+GND	CONN2-2 C?-2 U?-1 
