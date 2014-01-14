@@ -5,9 +5,12 @@
 #ifndef	_PINIO_H
 #define	_PINIO_H
 
-#include 	<stdint.h>
-
 #include	"config.h"
+#include        <stdint.h>
+
+#ifdef SIMULATOR
+  #include "simulator.h"
+#endif
 
 /*
 Power
@@ -20,6 +23,14 @@ Power
 /// It is used inside and outside of interrupts, which is why it has been made volatile
 extern volatile uint8_t psu_timeout;
 
+static void power_init(void);
+inline void power_init(void) {
+  #ifdef PS_MOSFET_PIN
+    WRITE(PS_MOSFET_PIN, 0);
+    SET_OUTPUT(PS_MOSFET_PIN);
+  #endif
+}
+
 void power_on(void);
 void power_off(void);
 
@@ -28,7 +39,7 @@ X Stepper
 */
 
 #define	_x_step(st)						WRITE(X_STEP_PIN, st)
-#define	x_step()							_x_step(1);
+#define x_step()              _x_step(1)
 #ifndef	X_INVERT_DIR
 	#define	x_direction(dir)		WRITE(X_DIR_PIN, dir)
 #else
@@ -58,7 +69,7 @@ Y Stepper
 */
 
 #define	_y_step(st)						WRITE(Y_STEP_PIN, st)
-#define	y_step()							_y_step(1);
+#define y_step()              _y_step(1)
 #ifndef	Y_INVERT_DIR
 	#define	y_direction(dir)		WRITE(Y_DIR_PIN, dir)
 #else
@@ -89,7 +100,7 @@ Z Stepper
 
 #if defined Z_STEP_PIN && defined Z_DIR_PIN
 	#define	_z_step(st)					WRITE(Z_STEP_PIN, st)
-	#define	z_step()						_z_step(1);
+  #define z_step()            _z_step(1)
 	#ifndef	Z_INVERT_DIR
 		#define	z_direction(dir)	WRITE(Z_DIR_PIN, dir)
 	#else
@@ -125,7 +136,7 @@ Extruder
 
 #if defined E_STEP_PIN && defined E_DIR_PIN
 	#define	_e_step(st)					WRITE(E_STEP_PIN, st)
-	#define	e_step()						_e_step(1);
+  #define e_step()            _e_step(1)
 	#ifndef	E_INVERT_DIR
 		#define	e_direction(dir)	WRITE(E_DIR_PIN, dir)
 	#else

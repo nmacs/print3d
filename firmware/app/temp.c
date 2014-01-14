@@ -7,16 +7,17 @@
 */
 
 #include	<stdlib.h>
+#ifndef SIMULATOR
+#ifdef __avr__
+#include	<avr/eeprom.h>
+#include	<avr/pgmspace.h>
+#endif
+#endif
+#include "simulator.h"
 
-//! #include	<avr/eeprom.h>
-//! #include	<avr/pgmspace.h>
-//! #include	"arduino.h"
-
-#include "pgmspace.h"
-#include "sysfuncs.h"
-#include "iofuncs.h"
-
-#include	"delay.h"
+#ifdef __avr__
+#include	"arduino.h"
+#endif
 #include	"debug.h"
 #ifndef	EXTRUDER
 	#include	"sersendf.h"
@@ -38,10 +39,6 @@
 #include	"analog.h"
 #endif
 
-#ifdef TEMP_NONE
-// no actual sensor, just store the target temp
-#endif
-
 typedef enum {
 	PRESENT,
 	TCOPEN
@@ -57,10 +54,16 @@ typedef struct {
 
 #undef DEFINE_TEMP_SENSOR
 /// help build list of sensors from entries in config.h
-// #define DEFINE_TEMP_SENSOR(name, type, pin, additional) { (type), (pin ## _ADC), (HEATER_ ## name), (additional) },
-
+#ifndef SIMULATOR
+#ifdef __avr__
+#define DEFINE_TEMP_SENSOR(name, type, pin, additional) { (type), (pin ## _ADC), (HEATER_ ## name), (additional) },
+#endif
+#ifdef __arm__
 #define DEFINE_TEMP_SENSOR(name, type, pin, additional) { (type), (pin), (HEATER_ ## name), (additional) },
-
+#endif
+#else
+#define DEFINE_TEMP_SENSOR(name, type, pin, additional) { (type), (TEMP_SENSOR_ ## name), (HEATER_ ## name), (additional) },
+#endif
 static const temp_sensor_definition_t temp_sensors[NUM_TEMP_SENSORS] =
 {
 	#include	"config.h"
@@ -106,12 +109,6 @@ void temp_init() {
 			case TT_INTERCOM:
 				intercom_init();
 				send_temperature(0, 0);
-				break;
-		#endif
-
-		#ifdef  TEMP_NONE
-			case TT_NONE:
-				// nothing to do
 				break;
 		#endif
 
@@ -271,15 +268,6 @@ void temp_sensor_tick() {
 					break;
 				#endif	/* TEMP_INTERCOM */
 
-				#ifdef	TEMP_NONE
-				case TT_NONE:
-					temp_sensors_runtime[i].last_read_temp =
-					  temp_sensors_runtime[i].target_temp; // for get_temp()
-					temp_sensors_runtime[i].next_read_time = 25;
-
-					break;
-				#endif	/* TEMP_NONE */
-
 				#ifdef	TEMP_DUMMY
 				case TT_DUMMY:
 					temp = temp_sensors_runtime[i].last_read_temp;
@@ -325,7 +313,15 @@ void temp_sensor_tick() {
 		if (temp_sensors[i].heater < NUM_HEATERS) {
 			heater_tick(temp_sensors[i].heater, temp_sensors[i].temp_type, temp_sensors_runtime[i].last_read_temp, temp_sensors_runtime[i].target_temp);
 		}
+
+    if (DEBUG_PID && (debug_flags & DEBUG_PID))
+      sersendf_P(PSTR("DU temp: {%d %d %d.%d}"), i,
+                 temp_sensors_runtime[i].last_read_temp,
+                 temp_sensors_runtime[i].last_read_temp / 4,
+                 (temp_sensors_runtime[i].last_read_temp & 0x03) * 25);
 	}
+  if (DEBUG_PID && (debug_flags & DEBUG_PID))
+    sersendf_P(PSTR("\n"));
 }
 
 /// report whether all temp sensors are reading their target temperatures
@@ -366,17 +362,6 @@ uint16_t temp_get(temp_sensor_t index) {
 		return 0;
 
 	return temp_sensors_runtime[index].last_read_temp;
-}
-
-uint8_t temp_all_zero() {
-	uint8_t i;
-	for (i = 0; i < NUM_TEMP_SENSORS; i++) {
-		if (temp_sensors[i].heater < NUM_HEATERS) {
-			if (temp_sensors_runtime[i].target_temp)
-				return 0;
-		}
-	}
-	return 255;
 }
 
 // extruder doesn't have sersendf_P

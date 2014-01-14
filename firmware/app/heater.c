@@ -5,44 +5,51 @@
 */
 
 #include	<stdlib.h>
-//#include	<avr/eeprom.h>
-//#include	<avr/pgmspace.h>
 
-#include "eeprom.h"
+#ifdef __arv__
+#include	<avr/eeprom.h>
+#include	<avr/pgmspace.h>
+#include	"arduino.h"
+#endif
+#ifdef __arm__
+#include        "iofuncs.h"
+#endif
 
-//
-//#include	"arduino.h"
 #include	"debug.h"
 #include	"temp.h"
+#include        "pinio.h"
 #include	"crc.h"
-#include "iofuncs.h"
 
 #ifndef	EXTRUDER
 	#include	"sersendf.h"
 #endif
 
-// bit flags for heater config parameter
-#define INVERTED_OUTPUT_FLAG  1
-
 /// \struct heater_definition_t
 /// \brief simply holds pinout data- port, pin, pwm channel if used
 typedef struct {
-//!	volatile uint8_t *heater_port; ///< pointer to port. DDR is inferred from this pointer too
-//!	uint8_t			  heater_pin;  ///< heater pin, not masked. eg for PB3 enter '3' here, or PB3_PIN or similar
-//!	volatile uint8_t *heater_pwm;  ///< pointer to 8-bit PWM register, eg OCR0A (8-bit) or ORC3L (low byte, 16-bit)
+#ifdef __avr__
+	volatile uint8_t *heater_port; ///< pointer to port. DDR is inferred from this pointer too
+	uint8_t						heater_pin;  ///< heater pin, not masked. eg for PB3 enter '3' here, or PB3_PIN or similar
+	volatile uint8_t *heater_pwm;  ///< pointer to 8-bit PWM register, eg OCR0A (8-bit) or ORC3L (low byte, 16-bit)
+#endif
+#ifdef __arm__
 	port_t   port_pin;
 	uint8_t  channel;
-	uint8_t	 pwm_mode;
-	uint8_t	 config;
+	uint8_t  pwm_mode;
+	uint8_t  config;
+#endif
 } heater_definition_t;
 
 #undef DEFINE_HEATER
+#ifdef __avr__
 /// \brief helper macro to fill heater definition struct from config.h
-//! #define	DEFINE_HEATER(name, pin, pwm) { &(pin ## _WPORT), pin ## _PIN, \ 
-//!                                         pwm ? (pin ## _PWM) : NULL},
-
-#define	DEFINE_HEATER(name, pin, pwm, config) { pin, 0, pwm, config },
-
+#define	DEFINE_HEATER(name, pin, pwm) { &(pin ## _WPORT), pin ## _PIN, \
+                                        pwm ? (pin ## _PWM) : NULL},
+#endif
+#ifdef __arm__
+#define DEFINE_HEATER(name, pin, pwm, config) { pin, 0, pwm, config },
+#define INVERTED_OUTPUT_FLAG  1
+#endif
 static const heater_definition_t heaters[NUM_HEATERS] =
 {
 	#include	"config.h"
@@ -98,6 +105,7 @@ struct {
 /// default scaled I limit
 #define		DEFAULT_I_LIMIT	384
 
+#ifdef EECONFIG
 /// this lives in the eeprom so we can save our PID settings for each heater
 typedef struct {
 	int32_t		EE_p_factor;
@@ -108,13 +116,14 @@ typedef struct {
 } EE_factor;
 
 EE_factor EEMEM EE_factors[NUM_HEATERS];
+#endif /* EECONFIG */
 
 /// \brief initialise heater subsystem
 /// Set directions, initialise PWM timers, read PID factors from eeprom, etc
 void heater_init() {
 	heater_t i;
 
-#ifdef AVR
+        #ifdef __avr__
 	// setup PWM timers: fast PWM
 	// Warning 2012-01-11: these are not consistent across all AVRs
 	TCCR0A = MASK(WGM01) | MASK(WGM00);
@@ -138,6 +147,7 @@ void heater_init() {
 	TIMSK2 = 0;
 	OCR2A = 0;
 	OCR2B = 0;
+        #endif
 
 	#ifdef	TCCR3A
 		TCCR3A = MASK(WGM30);
@@ -154,6 +164,10 @@ void heater_init() {
 			TCCR4C = MASK(PWM4D); // and D
 			TCCR4D = MASK(WGM40); // Phase correct
 			TCCR4B = MASK(CS40);  // no prescaler
+			#ifndef FAST_PWM
+				TCCR4B = MASK(CS40) | MASK(CS42) | MASK(CS43); // 16 MHz / 1024 / 256 
+				//TCCR4B = MASK(CS40) | MASK(CS41) | MASK(CS43); // 16 MHz / 4096 / 256 
+			#endif
 			TC4H   = 0;           // clear high bits
 			OCR4C  = 0xff;        // 8 bit max count at top before reset
 		#else
@@ -175,14 +189,12 @@ void heater_init() {
 		OCR5A = 0;
 		OCR5B = 0;
 	#endif
-#endif
 
 	// setup pins
 	for (i = 0; i < NUM_HEATERS; i++) {
-#ifdef AVR
+#ifdef __avr__
 		if (heaters[i].heater_pwm) {
 			*heaters[i].heater_pwm = 0;
-
 			// this is somewhat ugly too, but switch() won't accept pointers for reasons unknown
 			switch((uint16_t) heaters[i].heater_pwm) {
 				case (uint16_t) &OCR0A:
@@ -257,14 +269,20 @@ void heater_init() {
 		#endif
 
 		#ifndef BANG_BANG
-			// read factors from eeprom
-			heaters_pid[i].p_factor = eeprom_read_dword((uint32_t *) &EE_factors[i].EE_p_factor);
-			heaters_pid[i].i_factor = eeprom_read_dword((uint32_t *) &EE_factors[i].EE_i_factor);
-			heaters_pid[i].d_factor = eeprom_read_dword((uint32_t *) &EE_factors[i].EE_d_factor);
-			heaters_pid[i].i_limit = eeprom_read_word((uint16_t *) &EE_factors[i].EE_i_limit);
+      #ifdef EECONFIG
+        // read factors from eeprom
+        heaters_pid[i].p_factor =
+          eeprom_read_dword((uint32_t *) &EE_factors[i].EE_p_factor);
+        heaters_pid[i].i_factor =
+          eeprom_read_dword((uint32_t *) &EE_factors[i].EE_i_factor);
+        heaters_pid[i].d_factor =
+          eeprom_read_dword((uint32_t *) &EE_factors[i].EE_d_factor);
+        heaters_pid[i].i_limit =
+          eeprom_read_word((uint16_t *) &EE_factors[i].EE_i_limit);
 
-// 			if ((heaters_pid[i].p_factor == 0) && (heaters_pid[i].i_factor == 0) && (heaters_pid[i].d_factor == 0) && (heaters_pid[i].i_limit == 0)) {
-			if (crc_block(&heaters_pid[i].p_factor, 14) != eeprom_read_word((uint16_t *) &EE_factors[i].crc)) {
+			if (crc_block(&heaters_pid[i].p_factor, 14) != eeprom_read_word((uint16_t *) &EE_factors[i].crc))
+      #endif /* EECONFIG */
+      {
 				heaters_pid[i].p_factor = DEFAULT_P;
 				heaters_pid[i].i_factor = DEFAULT_I;
 				heaters_pid[i].d_factor = DEFAULT_D;
@@ -276,24 +294,15 @@ void heater_init() {
 	// set all heater pins to output
 	do {
 		#undef	DEFINE_HEATER
-		#define	DEFINE_HEATER(name, pin, pwm, config) WRITE(pin, 0); SET_OUTPUT(pin);
+#ifdef __avr__
+		#define	DEFINE_HEATER(name, pin, pwm) WRITE(pin, 0); SET_OUTPUT(pin);
+#endif
+#ifdef __arm__
+                #define DEFINE_HEATER(name, pin, pwm, config) WRITE(pin, 0); SET_OUTPUT(pin);
+#endif
 			#include "config.h"
 		#undef DEFINE_HEATER
 	} while (0);
-}
-
-/// \brief Write PID factors to eeprom
-void heater_save_settings() {
-	#ifndef BANG_BANG
-		heater_t i;
-		for (i = 0; i < NUM_HEATERS; i++) {
-			eeprom_write_dword((uint32_t *) &EE_factors[i].EE_p_factor, heaters_pid[i].p_factor);
-			eeprom_write_dword((uint32_t *) &EE_factors[i].EE_i_factor, heaters_pid[i].i_factor);
-			eeprom_write_dword((uint32_t *) &EE_factors[i].EE_d_factor, heaters_pid[i].d_factor);
-			eeprom_write_word((uint16_t *) &EE_factors[i].EE_i_limit, heaters_pid[i].i_limit);
-			eeprom_write_word((uint16_t *) &EE_factors[i].crc, crc_block(&heaters_pid[i].p_factor, 14));
-		}
-	#endif /* BANG_BANG */
 }
 
 /** \brief run heater PID algorithm
@@ -318,14 +327,6 @@ void heater_tick(heater_t h, temp_type_t type, uint16_t current_temp, uint16_t t
 		heater_set(h, 0);
 		return;
 	}
-
-	#ifdef TEMP_NONE
-		if (type == TT_NONE) {
-			// it's something like a milling spindle
-			heater_set(h, target_temp >> 2);
-			return;
-		}
-	#endif /* TEMP_NONE */
 
 	#ifndef	BANG_BANG
 		heaters_runtime[h].temp_history[heaters_runtime[h].temp_history_pointer++] = current_temp;
@@ -445,26 +446,51 @@ void heater_set(heater_t index, uint8_t value) {
 		return;
 
 	heaters_runtime[index].heater_output = value;
-
-	if (heaters[index].pwm_mode) {
-		//! *(heaters[index].heater_pwm) = value;
-		PWM_SET_VALUE (heaters[index].channel, value);
+#ifdef __avr__
+	if (heaters[index].heater_pwm) {
+		*(heaters[index].heater_pwm) = value;
 		#ifdef	DEBUG
 		if (DEBUG_PID && (debug_flags & DEBUG_PID))
-			sersendf_P(PSTR("PWM{%u = %u}\n"), index, value);
+			sersendf_P(PSTR("PWM{%u = %u}\n"), index, *heaters[index].heater_pwm);
 		#endif
 	}
+#endif
+#ifdef __arm__
+	if (heaters[index].pwm_mode) {
+
+	}
+#endif
 	else {
 		if (value >= HEATER_THRESHOLD)
-			//!*(heaters[index].heater_port) |= MASK(heaters[index].heater_pin);
-			WRITE (heaters[index].port_pin, (heaters[index].config & INVERTED_OUTPUT_FLAG) ? 0 : 1);
+#ifdef __avr__
+			*(heaters[index].heater_port) |= MASK(heaters[index].heater_pin);
+#endif
+#ifdef __arm__
+		        WRITE (heaters[index].port_pin, (heaters[index].config & INVERTED_OUTPUT_FLAG) ? 0 : 1);
+#endif
 		else
-			//!*(heaters[index].heater_port) &= ~MASK(heaters[index].heater_pin);
-			WRITE (heaters[index].port_pin, (heaters[index].config & INVERTED_OUTPUT_FLAG) ? 1 : 0);
+#ifdef __avr__
+			*(heaters[index].heater_port) &= ~MASK(heaters[index].heater_pin);
+#endif
+#ifdef __arm__
+                        WRITE (heaters[index].port_pin, (heaters[index].config & INVERTED_OUTPUT_FLAG) ? 1 : 0);
+#endif
 	}
-	
-	if (value)
-		power_on();
+
+  if (value)
+    power_on();
+}
+
+/** \brief check wether all heaters are off
+*/
+uint8_t heaters_all_zero() {
+  uint8_t i;
+
+  for (i = 0; i < NUM_HEATERS; i++) {
+    if (heaters_runtime[i].heater_output)
+      return 0;
+  }
+  return 255;
 }
 
 /** \brief turn off all heaters
@@ -481,6 +507,7 @@ uint8_t heaters_all_off() {
 	return 255;
 }
 
+#ifdef EECONFIG
 /** \brief set heater P factor
 	\param index heater to change factor for
 	\param p scaled P factor
@@ -532,6 +559,21 @@ void pid_set_i_limit(heater_t index, int32_t i_limit) {
 		heaters_pid[index].i_limit = i_limit;
 	#endif /* BANG_BANG */
 }
+
+/// \brief Write PID factors to eeprom
+void heater_save_settings() {
+  #ifndef BANG_BANG
+    heater_t i;
+    for (i = 0; i < NUM_HEATERS; i++) {
+      eeprom_write_dword((uint32_t *) &EE_factors[i].EE_p_factor, heaters_pid[i].p_factor);
+      eeprom_write_dword((uint32_t *) &EE_factors[i].EE_i_factor, heaters_pid[i].i_factor);
+      eeprom_write_dword((uint32_t *) &EE_factors[i].EE_d_factor, heaters_pid[i].d_factor);
+      eeprom_write_word((uint16_t *) &EE_factors[i].EE_i_limit, heaters_pid[i].i_limit);
+      eeprom_write_word((uint16_t *) &EE_factors[i].crc, crc_block(&heaters_pid[i].p_factor, 14));
+    }
+  #endif /* BANG_BANG */
+}
+#endif /* EECONFIG */
 
 #ifndef	EXTRUDER
 /** \brief send heater debug info to host

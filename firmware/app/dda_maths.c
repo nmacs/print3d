@@ -74,6 +74,9 @@ const int32_t muldivQR(int32_t multiplicand, uint32_t qn, uint32_t rn,
 uint32_t approx_distance(uint32_t dx, uint32_t dy) {
   uint32_t min, max, approx;
 
+  // If either axis is zero, return the other one.
+  if (dx == 0 || dy == 0) return dx + dy;
+
   if ( dx < dy ) {
     min = dx;
     max = dy;
@@ -135,27 +138,85 @@ uint32_t approx_distance_3(uint32_t dx, uint32_t dy, uint32_t dz) {
   \param a find square root of this number
   \return sqrt(a - 1) < returnvalue <= sqrt(a)
 
-  see http://www.embedded-systems.com/98/9802fe2.htm
+  This is a binary search but it uses only the minimum required bits for
+  each step.
 */
-// courtesy of http://www.embedded-systems.com/98/9802fe2.htm
 uint16_t int_sqrt(uint32_t a) {
-  uint32_t rem = 0;
-  uint32_t root = 0;
+  uint16_t b = a >> 16;
+  uint8_t c = b >> 8;
+  uint16_t x = 0;
+  uint8_t z = 0;
   uint16_t i;
+  uint8_t j;
 
-  for (i = 0; i < 16; i++) {
-    root <<= 1;
-    rem = ((rem << 2) + (a >> 30));
-    a <<= 2;
-    root++;
-    if (root <= rem) {
-      rem -= root;
-      root++;
-    }
-    else
-      root--;
+  for (j = 0x8; j; j >>= 1) {
+    uint8_t y2;
+
+    z |= j;
+    y2 = z * z;
+    if (y2 > c)
+      z ^= j;
   }
-  return (uint16_t) ((root >> 1) & 0xFFFFL);
+  
+  x = z << 4;
+  for(i = 0x8; i; i >>= 1) {
+    uint16_t y2;
+
+    x |= i;
+    y2 = x * x;
+    if (y2 > b)
+      x ^= i;
+  }
+  
+  x <<= 8;
+  for(i = 0x80; i; i >>= 1) {
+    uint32_t y2;
+
+    x |= i;
+    y2 = (uint32_t)x * x;
+    if (y2 > a)
+      x ^= i;
+  }
+
+  return x;
+}
+
+/*!
+  integer inverse square root algorithm
+  \param a find the inverse of the square root of this number
+  \return 0x1000 / sqrt(a) - 1 < returnvalue <= 0x1000 / sqrt(a)
+
+  This is a binary search but it uses only the minimum required bits for each step.
+*/
+uint16_t int_inv_sqrt(uint16_t a) {
+  /// 16bits inverse (much faster than doing a full 32bits inverse)
+  /// the 0xFFFFU instead of 0x10000UL hack allows using 16bits and 8bits
+  /// variable for the first 8 steps without overflowing and it seems to
+  /// give better results for the ramping equation too :)
+  uint8_t z = 0, i;
+  uint16_t x, j;
+  uint32_t q = ((uint32_t)(0xFFFFU / a)) << 8;
+
+  for (i = 0x80; i; i >>= 1) {
+    uint16_t y;
+
+    z |= i;
+    y = (uint16_t)z * z;
+    if (y > (q >> 8))
+      z ^= i;
+  }
+
+  x = z << 4;
+  for (j = 0x8; j; j >>= 1) {
+    uint32_t y;
+
+    x |= j;
+    y = (uint32_t)x * x;
+    if (y > q)
+      x ^= j;
+  }
+
+  return x;
 }
 
 // this is an ultra-crude pseudo-logarithm routine, such that:

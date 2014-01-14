@@ -31,8 +31,11 @@
 // Version 1.7: fix usb_serial_set_control
 // 2012-10-17: Import to Teacup firmware
 
+#include "config.h"
+#include "simulator.h"
+
 /* protect this file from Arduino IDE */
-#ifdef USE_USB
+#ifdef USB_SERIAL
 
 #define USB_SERIAL_PRIVATE_INCLUDE
 #include "usb_serial.h"
@@ -150,7 +153,7 @@ static const uint8_t PROGMEM endpoint_config_table[] = {
 // in here should only be done by those who've read chapter 9 of the USB
 // spec and relevant portions of any USB class specifications!
 
-static uint8_t PROGMEM device_descriptor[] = {
+static const uint8_t PROGMEM device_descriptor[] = {
 	18,					// bLength
 	1,					// bDescriptorType
 	0x00, 0x02,				// bcdUSB
@@ -168,7 +171,7 @@ static uint8_t PROGMEM device_descriptor[] = {
 };
 
 #define CONFIG1_DESC_SIZE (9+9+5+5+4+5+7+9+7+7)
-static uint8_t PROGMEM config1_descriptor[CONFIG1_DESC_SIZE] = {
+static const uint8_t PROGMEM config1_descriptor[CONFIG1_DESC_SIZE] = {
 	// configuration descriptor, USB spec 9.6.3, page 264-266, Table 9-10
 	9, 					// bLength;
 	2,					// bDescriptorType;
@@ -252,22 +255,22 @@ struct usb_string_descriptor_struct {
 	uint8_t bDescriptorType;
 	int16_t wString[];
 };
-static struct usb_string_descriptor_struct PROGMEM string0 = {
+static const struct usb_string_descriptor_struct PROGMEM string0 = {
 	4,
 	3,
 	{0x0409}
 };
-static struct usb_string_descriptor_struct PROGMEM string1 = {
+static const struct usb_string_descriptor_struct PROGMEM string1 = {
 	sizeof(STR_MANUFACTURER),
 	3,
 	STR_MANUFACTURER
 };
-static struct usb_string_descriptor_struct PROGMEM string2 = {
+static const struct usb_string_descriptor_struct PROGMEM string2 = {
 	sizeof(STR_PRODUCT),
 	3,
 	STR_PRODUCT
 };
-static struct usb_string_descriptor_struct PROGMEM string3 = {
+static const struct usb_string_descriptor_struct PROGMEM string3 = {
 	sizeof(STR_SERIAL_NUMBER),
 	3,
 	STR_SERIAL_NUMBER
@@ -275,7 +278,7 @@ static struct usb_string_descriptor_struct PROGMEM string3 = {
 
 // This table defines which descriptor data is sent for each specific
 // request from the host (in wValue and wIndex).
-static struct descriptor_list_struct {
+static const struct descriptor_list_struct {
 	uint16_t	wValue;
 	uint16_t	wIndex;
 	const uint8_t	*addr;
@@ -307,7 +310,9 @@ static uint8_t transmit_previous_timeout=0;
 
 // serial port settings (baud rate, control signals, etc) set
 // by the PC.  These are ignored, but kept in RAM.
-static uint8_t cdc_line_coding[7]={0x00, 0xE1, 0x00, 0x00, 0x00, 0x00, 0x08};
+static union{ 
+  uint8_t bytes[7];
+  uint32_t baud; } cdc_line_coding={{0x00, 0xE1, 0x00, 0x00, 0x00, 0x00, 0x08}};
 static uint8_t cdc_line_rtsdtr=0;
 
 
@@ -650,19 +655,19 @@ void usb_serial_flush_output(void)
 // communication
 uint32_t usb_serial_get_baud(void)
 {
-	return *(uint32_t *)cdc_line_coding;
+	return cdc_line_coding.baud;
 }
 uint8_t usb_serial_get_stopbits(void)
 {
-	return cdc_line_coding[4];
+	return cdc_line_coding.bytes[4];
 }
 uint8_t usb_serial_get_paritytype(void)
 {
-	return cdc_line_coding[5];
+	return cdc_line_coding.bytes[5];
 }
 uint8_t usb_serial_get_numbits(void)
 {
-	return cdc_line_coding[6];
+	return cdc_line_coding.bytes[6];
 }
 uint8_t usb_serial_get_control(void)
 {
@@ -751,7 +756,7 @@ ISR(USB_GEN_vect)
 
 
 // Misc functions to wait for ready and send/receive packets
-static inline void usb_wait_in_ready(void)
+inline void usb_wait_in_ready(void)
 {
 	while (!(UEINTX & (1<<TXINI))) ;
 }
@@ -877,7 +882,7 @@ ISR(USB_COM_vect)
 		}
 		if (bRequest == CDC_GET_LINE_CODING && bmRequestType == 0xA1) {
 			usb_wait_in_ready();
-			p = cdc_line_coding;
+			p = cdc_line_coding.bytes;
 			for (i=0; i<7; i++) {
 				UEDATX = *p++;
 			}
@@ -886,7 +891,7 @@ ISR(USB_COM_vect)
 		}
 		if (bRequest == CDC_SET_LINE_CODING && bmRequestType == 0x21) {
 			usb_wait_receive_out();
-			p = cdc_line_coding;
+			p = cdc_line_coding.bytes;
 			for (i=0; i<7; i++) {
 				*p++ = UEDATX;
 			}
@@ -937,4 +942,4 @@ ISR(USB_COM_vect)
 	UECONX = (1<<STALLRQ) | (1<<EPEN);	// stall
 }
 
-#endif /* USE_USB */
+#endif /* USB_SERIAL */

@@ -8,44 +8,32 @@
 #include	"sersendf.h"
 #include	"dda_queue.h"
 #include	"watchdog.h"
-#include	"temp.h"
 #include	"timer.h"
 #include	"debug.h"
 #include	"heater.h"
-#include	"serial.h"
+#include	"teaserial.h"
 #ifdef	TEMP_INTERCOM
 	#include	"intercom.h"
 #endif
-
-//#include	"memory_barrier.h"
-#include "sysfuncs.h"
+#include	"memory_barrier.h"
 
 /*!	do stuff every 1/4 second
 
 	called from clock_10ms(), do not call directly
 */
-static void clock_250ms(void) {                                    
-	#ifndef	NO_AUTO_IDLE
-	if (temp_all_zero())	{
+static void clock_250ms(void) {
+  if (heaters_all_zero()) {
 		if (psu_timeout > (30 * 4)) {
 			power_off();
 		}
 		else {
-			enter_critical();
-			psu_timeout++;
-			leave_critical();
+      ATOMIC_START
+        psu_timeout++;
+      ATOMIC_END
 		}
 	}
-	#endif
 
 	ifclock(clock_flag_1s) {
-	//
-	#ifdef DEBUG_ADC
-	uint16_t t = analog_read(0);
-	sersendf_P (PSTR("adc:%u\n"), t);
-	#endif
-	
-	//
 		if (DEBUG_POSITION && (debug_flags & DEBUG_POSITION)) {
 			// current position
 			update_current_position();
@@ -88,10 +76,13 @@ static void clock_10ms(void) {
 
 	call it occasionally in busy loops
 */
-void app_clock() {
+void clock() {
 	ifclock(clock_flag_10ms) {
 		clock_10ms();
 	}
+#ifdef SIMULATOR
+  sim_time_warp();
+#endif
 }
 
 

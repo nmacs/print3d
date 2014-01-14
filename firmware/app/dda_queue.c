@@ -5,10 +5,11 @@
 */
 
 #include	<string.h>
-//!#include	<avr/interrupt.h>
-
-#include 	"iofuncs.h"
-#include 	"sysfuncs.h"
+#ifndef SIMULATOR
+#ifdef __avr__
+#include	<avr/interrupt.h>
+#endif
+#endif
 
 #include	"config.h"
 #include	"timer.h"
@@ -18,7 +19,7 @@
 #include	"delay.h"
 #include	"sersendf.h"
 #include	"clock.h"
-//!#include	"memory_barrier.h"
+#include	"memory_barrier.h"
 
 /// movebuffer head pointer. Points to the last move in the queue.
 /// this variable is used both in and out of interrupts, but is
@@ -40,34 +41,37 @@ DDA movebuffer[MOVEBUFFER_SIZE] __attribute__ ((__section__ (".bss")));
 
 /// check if the queue is completely full
 uint8_t queue_full() {
-	MEMORY_BARRIER(); // todo
-
-#if 0
-	uint8_t h = mb_head + 1;
-	h &= (MOVEBUFFER_SIZE - 1);
-
-	if (h == mb_tail)
-		return 255;
-	else
-		return 0;
-#else
+	MEMORY_BARRIER();
 	if (mb_tail > mb_head) {
 		return ((mb_tail - mb_head - 1) == 0) ? 255 : 0;
 	} else {
 		return ((mb_tail + MOVEBUFFER_SIZE - mb_head - 1) == 0) ? 255 : 0;
 	}
-#endif
 }
 
 /// check if the queue is completely empty
 uint8_t queue_empty() {
-	enter_critical();
+  uint8_t result;
 
-	uint8_t result = ((mb_tail == mb_head) && (movebuffer[mb_tail].live == 0))?255:0;
-
-	leave_critical();
+  ATOMIC_START
+    result = ((mb_tail == mb_head) && (movebuffer[mb_tail].live == 0))?255:0;
+  ATOMIC_END
 
 	return result;
+}
+
+/// Return the current movement, or NULL, if there's no movement going on.
+DDA *queue_current_movement() {
+  DDA* current;
+
+  ATOMIC_START
+    current = &movebuffer[mb_tail];
+
+    if ( ! current->live || current->waitfor_temp || current->nullmove)
+      current = NULL;
+  ATOMIC_END
+
+  return current;
 }
 
 // -------------------------------------------------------
@@ -82,7 +86,7 @@ void queue_step() {
 		if (current_movebuffer->waitfor_temp) {
 			setTimer(HEATER_WAIT_TIMEOUT);
 			if (temp_achieved()) {
-				current_movebuffer->live = current_movebuffer->waitfor_temp = 0;
+				current_movebuffer->live = current_movebuffer->done = 0;
 				serial_writestr_P(PSTR("Temp achieved\n"));
 			}
 		}
@@ -93,8 +97,7 @@ void queue_step() {
 		}
 	}
 
-	// fall directly into dda_start instead of waiting for another step
-	// the dda dies not directly after its last step, but when the timer fires and there's no steps to do
+  // Start the next move if this one is done.
 	if (current_movebuffer->live == 0)
 		next_move();
 }
@@ -102,47 +105,43 @@ void queue_step() {
 /// add a move to the movebuffer
 /// \note this function waits for space to be available if necessary, check queue_full() first if waiting is a problem
 /// This is the only function that modifies mb_head and it always called from outside an interrupt.
-void enqueue(TARGET *t) {
-	enqueue_home(t, 0, 0);
-}
-
 void enqueue_home(TARGET *t, uint8_t endstop_check, uint8_t endstop_stop_cond) {
 	// don't call this function when the queue is full, but just in case, wait for a move to complete and free up the space for the passed target
 	while (queue_full())
-		delay(WAITING_DELAY);
+		delay_us(100);
 
 	uint8_t h = mb_head + 1;
 	h &= (MOVEBUFFER_SIZE - 1);
 
 	DDA* new_movebuffer = &(movebuffer[h]);
-	
-	if (t != NULL) {
-		dda_create(new_movebuffer, t);
+
+  if (t != NULL) {
 		new_movebuffer->endstop_check = endstop_check;
 		new_movebuffer->endstop_stop_cond = endstop_stop_cond;
 	}
 	else {
 		// it's a wait for temp
 		new_movebuffer->waitfor_temp = 1;
-		new_movebuffer->nullmove = 0;
 	}
+  dda_create(new_movebuffer, t);
 
 	// make certain all writes to global memory
 	// are flushed before modifying mb_head.
-	enter_critical();
-	
+	MEMORY_BARRIER();
+
 	mb_head = h;
-	
-	uint8_t isdead = (movebuffer[mb_tail].live == 0);
-	
-	leave_critical();
-		
+
+  uint8_t isdead;
+
+  ATOMIC_START
+    isdead = (movebuffer[mb_tail].live == 0);
+  ATOMIC_END
+
 	if (isdead) {
 		next_move();
-		
 		// Compensate for the cli() in setTimer().
-		//! enable_irq();
-	}	
+		sei();
+	}
 }
 
 /// go to the next move.
@@ -164,9 +163,7 @@ void next_move() {
 		// mb_tail to the timer interrupt routine. 
 		mb_tail = t;
 		if (current_movebuffer->waitfor_temp) {
-			#ifndef	REPRAP_HOST_COMPATIBILITY
-				serial_writestr_P(PSTR("Waiting for target temp\n"));
-			#endif
+			serial_writestr_P(PSTR("Waiting for target temp\n"));
 			current_movebuffer->live = 1;
 			setTimer(HEATER_WAIT_TIMEOUT);
 		}
@@ -183,25 +180,19 @@ void print_queue() {
 }
 
 /// dump queue for emergency stop.
+/// Make sure to have all timers stopped with timer_stop() or
+/// unexpected things might happen.
 /// \todo effect on startpoint is undefined!
 void queue_flush() {
-	// Since the timer interrupt is disabled before this function
-	// is called it is not strictly necessary to write the variables
-	// inside an interrupt disabled block...
-	enter_critical();
-	
-	// flush queue
-	mb_tail = mb_head;
-	movebuffer[mb_head].live = 0;
 
-	// disable timer
-	setTimer(0);
-	
-	leave_critical();
+  // if the timer were running, this would require
+  // wrapping in ATOMIC_START ... ATOMIC_END.
+  mb_tail = mb_head;
+  movebuffer[mb_head].live = 0;
 }
 
 /// wait for queue to empty
 void queue_wait() {
 	while (queue_empty() == 0)
-		app_clock();
+		clock();
 }

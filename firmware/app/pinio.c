@@ -1,4 +1,6 @@
+#ifdef STM32
 #include 	"iofuncs.h"
+#endif
 #include	"pinio.h"
 #include	"delay.h"
 
@@ -13,8 +15,12 @@ void power_on() {
 		#ifdef	PS_ON_PIN
 			WRITE(PS_ON_PIN, 0);
 			SET_OUTPUT(PS_ON_PIN);
-			_delay_ms(500);
+			delay_ms(500);
 		#endif
+    #ifdef PS_MOSFET_PIN
+      WRITE(PS_MOSFET_PIN, 1);
+      delay_ms(10);
+    #endif
 		ps_is_on = 1;
 	}
 
@@ -32,6 +38,10 @@ void power_off() {
 	#ifdef	PS_ON_PIN
 		SET_INPUT(PS_ON_PIN);
 	#endif
+
+  #ifdef PS_MOSFET_PIN
+    WRITE(PS_MOSFET_PIN, 0);
+  #endif
 
 	ps_is_on = 0;
 }

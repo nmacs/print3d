@@ -4,6 +4,7 @@ APPSRC = ${APP}/crc.c \
        ${APP}/dda.c \
        ${APP}/dda_maths.c \
        ${APP}/dda_queue.c \
+       ${APP}/dda_lookahead.c \
        ${APP}/delay.c \
        ${APP}/eeprom.c \
        ${APP}/gcode_parse.c \
@@ -12,7 +13,7 @@ APPSRC = ${APP}/crc.c \
        ${APP}/home.c \
        ${APP}/pinio.c \
        ${APP}/sermsg.c \
-		${APP}/sersendf.c \
+	   ${APP}/sersendf.c \
        ${APP}/sysfuncs.c \
        ${APP}/teaserial.c \
        ${APP}/temp.c \

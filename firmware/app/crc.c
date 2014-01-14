@@ -4,35 +4,23 @@
 	\brief crc16 routine
 */
 
-#ifdef AVR
+#ifndef SIMULATOR
+#ifdef __arv__
 #include	<util/crc16.h>
-
-// avr-libc's _crc16_update is equivalent to the following:
-//
-// 	uint16_t _crc16_update(uint16_t crc, uint8_t a) {
-// 		int i;
-// 		crc ^= a;
-// 		for (i = 0; i < 8; ++i)
-// 		{
-// 			if (crc & 1)
-// 				crc = (crc >> 1) ^ 0xA001;
-// 			else
-// 				crc = (crc >> 1);
-// 		}
-// 		return crc;
-// 	}
+#endif
 #else
+
+// Equivalent to avr-libc's _crc16_update.
 uint16_t _crc16_update(uint16_t crc, uint8_t a) {
-	int i;
-	crc ^= a;
-	for (i = 0; i < 8; ++i)
-	{
-		if (crc & 1)
-			crc = (crc >> 1) ^ 0xA001;
-		else
-			crc = (crc >> 1);
-	}
-	return crc;
+  int i;
+  crc ^= a;
+  for (i = 0; i < 8; ++i) {
+    if (crc & 1)
+      crc = (crc >> 1) ^ 0xA001;
+    else
+      crc = (crc >> 1);
+  }
+  return crc;
 }
 #endif
 

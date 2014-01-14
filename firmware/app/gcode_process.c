@@ -5,12 +5,14 @@
 */
 
 #include	<string.h>
-//!#include	<avr/interrupt.h>
+#ifndef SIMULATOR
+#ifdef __avr__
+#include	<avr/interrupt.h>
+#endif
+#endif
 
 #include	"gcode_parse.h"
-
-#include "sysfuncs.h"
-#include "iofuncs.h"
+#include        "memory_barrier.h"
 
 #include	"dda.h"
 #include	"dda_queue.h"
@@ -158,7 +160,7 @@ void process_gcode_command() {
 				// delay
 				if (next_target.seen_P) {
 					for (;next_target.P > 0;next_target.P--) {
-						app_clock();
+						clock();
 						delay_ms(1);
 					}
 				}
@@ -352,6 +354,8 @@ void process_gcode_command() {
 				//?
 
 			case 2:
+      case 18:
+      case 84: // For compatibility with slic3rs default end G-code.
 				//? --- M2: program end ---
 				//?
 				//? Example: M2
@@ -376,7 +380,7 @@ void process_gcode_command() {
 				timer_stop();
 				queue_flush();
 				power_off();
-				disable_irq();
+				cli();
 				for (;;)
 					wd_reset();
 				break;
@@ -415,22 +419,7 @@ void process_gcode_command() {
 
 			// M17- Enable/Power all stepper motors
 			case 17:
-                                stepper_enable();
-                                x_enable();
-                                y_enable();
-                                z_enable();
-                                e_enable();
-                                break;
-
-                        // M18- Disable all stepper motors
-			case 18:
-			// M84- stop idle hold
-			case 84:
-				stepper_disable();
-				x_disable();
-				y_disable();
-				z_disable();
-				e_disable();
+                power_on();
 				break;
 
 			// M3/M101- extruder on
@@ -481,28 +470,38 @@ void process_gcode_command() {
 				//?
 				//? Example: M104 S190
 				//?
-				//? Set the temperature of the current extruder to 190<sup>o</sup>C and return control to the host immediately (''i.e.'' before that temperature has been reached by the extruder).  See also M116.
-				//? Teacup supports an optional P parameter as a sensor index to address (eg M104 P1 S100 will set the bed temperature rather than the extruder temperature).
-				//?
+        //? Set the temperature of the current extruder to 190<sup>o</sup>C
+        //? and return control to the host immediately (''i.e.'' before that
+        //? temperature has been reached by the extruder). For waiting, see M116.
+        //?
+        //? Teacup supports an optional P parameter as a zero-based temperature
+        //? sensor index to address (e.g. M104 P1 S100 will set the temperature
+        //? of the heater connected to the second temperature sensor rather
+        //? than the extruder temperature).
+        //?
 				if ( ! next_target.seen_S)
 					break;
-				if ( ! next_target.seen_P)
-					next_target.P = HEATER_EXTRUDER;
+        #ifdef HEATER_EXTRUDER
+          if ( ! next_target.seen_P)
+            next_target.P = HEATER_EXTRUDER;
+        // else use the first available device
+        #endif
 				temp_set(next_target.P, next_target.S);
-				if (next_target.S)
-					power_on();
 				break;
 
 			case 105:
-				//? --- M105: Get Extruder Temperature ---
+        //? --- M105: Get Temperature(s) ---
 				//?
 				//? Example: M105
 				//?
-				//? Request the temperature of the current extruder and the build base in degrees Celsius.  The temperatures are returned to the host computer.  For example, the line sent to the host in response to this command looks like
+        //? Request the temperature of the current extruder and the build base
+        //? in degrees Celsius. For example, the line sent to the host in
+        //? response to this command looks like
 				//?
 				//? <tt>ok T:201 B:117</tt>
 				//?
-				//? Teacup supports an optional P parameter as a sensor index to address.
+        //? Teacup supports an optional P parameter as a zero-based temperature
+        //? sensor index to address.
 				//?
 				#ifdef ENFORCE_ORDER
 					queue_wait();
@@ -514,24 +513,28 @@ void process_gcode_command() {
 
 			case 7:
 			case 106:
-				//? --- M106: Set Fan Speed ---
+				//? --- M106: Set Fan Speed / Set Device Power ---
 				//?
 				//? Example: M106 S120
 				//?
 				//? Control the cooling fan (if any).
 				//?
+        //? Teacup supports an optional P parameter as a zero-based heater
+        //? index to address. The heater index can differ from the temperature
+        //? sensor index, see config.h.
 
 				#ifdef ENFORCE_ORDER
 					// wait for all moves to complete
 					queue_wait();
 				#endif
-				#ifdef HEATER_FAN
-					if ( ! next_target.seen_S)
-						break;
-					temp_set(HEATER_FAN, next_target.S);
-					if (next_target.S)
-						power_on();
-				#endif
+        #ifdef HEATER_FAN
+          if ( ! next_target.seen_P)
+            next_target.P = HEATER_FAN;
+        // else use the first available device
+        #endif
+				if ( ! next_target.seen_S)
+					break;
+        heater_set(next_target.P, next_target.S);
 				break;
 
 			case 110:
@@ -565,8 +568,6 @@ void process_gcode_command() {
 				debug_flags = next_target.S;
 				break;
 			#endif
-
-			// M113- extruder PWM
 
 			case 114:
 				//? --- M114: Get Current Position ---
@@ -634,11 +635,59 @@ void process_gcode_command() {
 				enqueue(NULL);
 				break;
 
+      case 119:
+        //? --- M119: report endstop status ---
+        //? Report the current status of the endstops configured in the
+        //? firmware to the host.
+        power_on();
+        endstops_on();
+        delay_ms(10); // allow the signal to stabilize
+        {
+          const char* const open = PSTR("open ");
+          const char* const triggered = PSTR("triggered ");
+
+          #if defined(X_MIN_PIN)
+            sersendf_P(PSTR("x_min:"));
+            x_min() ? sersendf_P(triggered) : sersendf_P(open);
+          #endif
+          #if defined(X_MAX_PIN)
+            sersendf_P(PSTR("x_max:"));
+            x_max() ? sersendf_P(triggered) : sersendf_P(open);
+          #endif
+          #if defined(Y_MIN_PIN)
+            sersendf_P(PSTR("y_min:"));
+            y_min() ? sersendf_P(triggered) : sersendf_P(open);
+          #endif
+          #if defined(Y_MAX_PIN)
+            sersendf_P(PSTR("y_max:"));
+            y_max() ? sersendf_P(triggered) : sersendf_P(open);
+          #endif
+          #if defined(Z_MIN_PIN)
+            sersendf_P(PSTR("z_min:"));
+            z_min() ? sersendf_P(triggered) : sersendf_P(open);
+          #endif
+          #if defined(Z_MAX_PIN)
+            sersendf_P(PSTR("z_max:"));
+            z_max() ? sersendf_P(triggered) : sersendf_P(open);
+          #endif
+          #if ! (defined(X_MIN_PIN) || defined(X_MAX_PIN) || \
+                 defined(Y_MIN_PIN) || defined(Y_MAX_PIN) || \
+                 defined(Z_MIN_PIN) || defined(Z_MAX_PIN))
+            sersendf_P(PSTR("no endstops defined"));
+          #endif
+        }
+        endstops_off();
+        break;
+
+      #ifdef EECONFIG
 			case 130:
 				//? --- M130: heater P factor ---
 				//? Undocumented.
-				if ( ! next_target.seen_P)
-					next_target.P = HEATER_EXTRUDER;
+        #ifdef HEATER_EXTRUDER
+          if ( ! next_target.seen_P)
+            next_target.P = HEATER_EXTRUDER;
+        // else use the first available device
+        #endif
 				if (next_target.seen_S)
 					pid_set_p(next_target.P, next_target.S);
 				break;
@@ -646,8 +695,10 @@ void process_gcode_command() {
 			case 131:
 				//? --- M131: heater I factor ---
 				//? Undocumented.
-				if ( ! next_target.seen_P)
-					next_target.P = HEATER_EXTRUDER;
+        #ifdef HEATER_EXTRUDER
+          if ( ! next_target.seen_P)
+            next_target.P = HEATER_EXTRUDER;
+        #endif
 				if (next_target.seen_S)
 					pid_set_i(next_target.P, next_target.S);
 				break;
@@ -655,8 +706,10 @@ void process_gcode_command() {
 			case 132:
 				//? --- M132: heater D factor ---
 				//? Undocumented.
-				if ( ! next_target.seen_P)
-					next_target.P = HEATER_EXTRUDER;
+        #ifdef HEATER_EXTRUDER
+          if ( ! next_target.seen_P)
+            next_target.P = HEATER_EXTRUDER;
+        #endif
 				if (next_target.seen_S)
 					pid_set_d(next_target.P, next_target.S);
 				break;
@@ -664,8 +717,10 @@ void process_gcode_command() {
 			case 133:
 				//? --- M133: heater I limit ---
 				//? Undocumented.
-				if ( ! next_target.seen_P)
-					next_target.P = HEATER_EXTRUDER;
+        #ifdef HEATER_EXTRUDER
+          if ( ! next_target.seen_P)
+            next_target.P = HEATER_EXTRUDER;
+        #endif
 				if (next_target.seen_S)
 					pid_set_i_limit(next_target.P, next_target.S);
 				break;
@@ -675,26 +730,18 @@ void process_gcode_command() {
 				//? Undocumented.
 				heater_save_settings();
 				break;
-
-			case 135:
-				//? --- M135: set heater output ---
-				//? Undocumented.
-				if ( ! next_target.seen_P)
-					next_target.P = HEATER_EXTRUDER;
-				if (next_target.seen_S) {
-					heater_set(next_target.P, next_target.S);
-					power_on();
-				}
-				break;
+      #endif /* EECONFIG */
 
 			#ifdef	DEBUG
 			case 136:
 				//? --- M136: PRINT PID settings to host ---
 				//? Undocumented.
 				//? This comand is only available in DEBUG builds.
+        #ifdef HEATER_EXTRUDER
 				if ( ! next_target.seen_P)
 					next_target.P = HEATER_EXTRUDER;
 				heater_print(next_target.P);
+        #endif
 				break;
 			#endif
 
@@ -705,59 +752,6 @@ void process_gcode_command() {
 					if ( ! next_target.seen_S)
 						break;
 					temp_set(HEATER_BED, next_target.S);
-					if (next_target.S)
-						power_on();
-				#endif
-				break;
-
-			case 190:
-				//? --- M190: Power On ---
-				//? Undocumented.
-				//? This one is pointless in Teacup. Implemented to calm the RepRap gurus.
-				//?
-				power_on();
-				stepper_enable();
-				x_enable();
-				y_enable();
-				z_enable();
-				e_enable();
-				break;
-
-			case 191:
-				//? --- M191: Power Off ---
-				//? Undocumented.
-				//? Same as M2. RepRap obviously prefers to invent new numbers instead of looking into standards. 
-				#ifdef ENFORCE_ORDER
-					// wait for all moves to complete
-					queue_wait();
-				#endif
-				power_off();
-				break;
-
-			case 200:
-				//? --- M200: report endstop status ---
-				//? Report the current status of the endstops configured in the firmware to the host.
-				power_on();
-				#if defined(X_MIN_PIN)
-					sersendf_P(PSTR("x_min:%d "), x_min());
-				#endif
-				#if defined(X_MAX_PIN)
-					sersendf_P(PSTR("x_max:%d "), x_max());
-				#endif
-				#if defined(Y_MIN_PIN)
-					sersendf_P(PSTR("y_min:%d "), y_min());
-				#endif
-				#if defined(Y_MAX_PIN)
-					sersendf_P(PSTR("y_max:%d "), y_max());
-				#endif
-				#if defined(Z_MIN_PIN)
-					sersendf_P(PSTR("z_min:%d "), z_min());
-				#endif
-				#if defined(Z_MAX_PIN)
-					sersendf_P(PSTR("z_max:%d "), z_max());
-				#endif
-				#if !(defined(X_MIN_PIN) || defined(X_MAX_PIN) || defined(Y_MIN_PIN) || defined(Y_MAX_PIN) || defined(Z_MIN_PIN) || defined(Z_MAX_PIN))
-					sersendf_P(PSTR("no endstops defined"));
 				#endif
 				break;
 

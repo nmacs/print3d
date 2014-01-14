@@ -24,48 +24,48 @@
 			ctrl+d \endcode
 */
 
-#include <stdint.h>
-
-#include "ch.h"
-#include "hal.h" 
-
-#include	"pgmspace.h"
-#include 	"sysfuncs.h"
-
-#include 	"pinio.h"
-#include 	"iofuncs.h"
-/*
+#ifndef SIMULATOR
+#ifdef __arv__
 #include	<avr/io.h>
 #include	<avr/interrupt.h>
-*/
+#endif
+#endif
 
-/*
 #include	"config.h"
 #include	"fuses.h"
 
-#include	"sermsg.h"
-#include	"debug.h"
-#include	"sersendf.h"
-#include	"pinio.h"
-#include	"arduino.h"
-#include	"intercom.h"
-*/
+#include	"teaserial.h"
 #include	"dda_queue.h"
 #include	"dda.h"
 #include	"gcode_parse.h"
-#include	"clock.h"
-#include	"teaserial.h"
+#include        "memory_barrier.h"
+#include	"timer.h"
+#include	"temp.h"
+#include	"sermsg.h"
+#include	"watchdog.h"
+#include	"debug.h"
+#include	"sersendf.h"
 #include	"heater.h"
 #include	"analog.h"
-#include	"temp.h"
-#include	"timer.h"
-#include	"watchdog.h"
+#include	"pinio.h"
+#ifdef __avr__
+#include	"arduino.h"
+#endif
+#include	"clock.h"
+#include	"intercom.h"
+#include "simulator.h"
 
-
+#ifdef SIMINFO
+  #include "../simulavr/src/simulavr_info.h"
+  SIMINFO_DEVICE("atmega644");
+  SIMINFO_CPUFREQUENCY(F_CPU);
+  SIMINFO_SERIAL_IN("D0", "-", BAUD);
+  SIMINFO_SERIAL_OUT("D1", "-", BAUD);
+#endif
 
 /// initialise all I/O - set pins as input or output, turn off unused subsystems, etc
 void io_init(void) {
-/*
+#ifdef __avr__
 	// disable modules we don't use
 	#ifdef PRR
 		PRR = MASK(PRTWI) | MASK(PRADC) | MASK(PRSPI);
@@ -81,7 +81,7 @@ void io_init(void) {
 		#endif
 	#endif
 	ACSR = MASK(ACD);
-*/
+#endif
 
 	// setup I/O pins
 
@@ -90,19 +90,11 @@ void io_init(void) {
 	WRITE(X_DIR_PIN,  0);	SET_OUTPUT(X_DIR_PIN);
 	#ifdef X_MIN_PIN
 		SET_INPUT(X_MIN_PIN);
-		#ifdef USE_INTERNAL_PULLUPS
-			WRITE(X_MIN_PIN, 1);
-		#else
-			WRITE(X_MIN_PIN, 0);
-		#endif
+		WRITE(X_MIN_PIN, 0); // pullup resistors off
 	#endif
 	#ifdef X_MAX_PIN
 		SET_INPUT(X_MAX_PIN);
-		#ifdef USE_INTERNAL_PULLUPS
-			WRITE(X_MAX_PIN, 1);
-		#else
-			WRITE(X_MAX_PIN, 0);
-		#endif
+		WRITE(X_MAX_PIN, 0); // pullup resistors off
 	#endif
 
 	// Y Stepper
@@ -110,19 +102,11 @@ void io_init(void) {
 	WRITE(Y_DIR_PIN,  0);	SET_OUTPUT(Y_DIR_PIN);
 	#ifdef Y_MIN_PIN
 		SET_INPUT(Y_MIN_PIN);
-		#ifdef USE_INTERNAL_PULLUPS
-			WRITE(Y_MIN_PIN, 1);
-		#else
-			WRITE(Y_MIN_PIN, 0);
-		#endif
+		WRITE(Y_MIN_PIN, 0); // pullup resistors off
 	#endif
 	#ifdef Y_MAX_PIN
 		SET_INPUT(Y_MAX_PIN);
-		#ifdef USE_INTERNAL_PULLUPS
-			WRITE(Y_MAX_PIN, 1);
-		#else
-			WRITE(Y_MAX_PIN, 0);
-		#endif
+		WRITE(Y_MAX_PIN, 0); // pullup resistors off
 	#endif
 
 	// Z Stepper
@@ -132,19 +116,11 @@ void io_init(void) {
 	#endif
 	#ifdef Z_MIN_PIN
 		SET_INPUT(Z_MIN_PIN);
-		#ifdef USE_INTERNAL_PULLUPS
-			WRITE(Z_MIN_PIN, 1);
-		#else
-			WRITE(Z_MIN_PIN, 0);
-		#endif
+		WRITE(Z_MIN_PIN, 0); // pullup resistors off
 	#endif
 	#ifdef Z_MAX_PIN
 		SET_INPUT(Z_MAX_PIN);
-		#ifdef USE_INTERNAL_PULLUPS
-			WRITE(Z_MAX_PIN, 1);
-		#else
-			WRITE(Z_MAX_PIN, 0);
-		#endif
+		WRITE(Z_MAX_PIN, 0); // pullup resistors off
 	#endif
 
 	#if defined E_STEP_PIN && defined E_DIR_PIN
@@ -225,12 +201,10 @@ void io_init(void) {
 
 /// Startup code, run when we come out of reset
 void init(void) {
-
+#ifdef __arm__
 	halInit();
   	chSysInit();
-
-	palSetPadMode(PORT_LED1, PIN_LED1, PAL_MODE_OUTPUT_PUSHPULL);
-	palSetPadMode(PORT_LED2, PIN_LED2, PAL_MODE_OUTPUT_PUSHPULL);
+#endif
 
 	// set up watchdog
 	wd_init();
@@ -261,10 +235,13 @@ void init(void) {
 	temp_init();
 
 	// enable interrupts
-	enable_irq();
+	sei();
 
 	// reset watchdog
 	wd_reset();
+
+  // prepare the power supply
+  power_init();
 
 	// say hi to host
 	serial_writestr_P(PSTR("start\nok\n"));
@@ -274,8 +251,14 @@ void init(void) {
 /// this is where it all starts, and ends
 ///
 /// just run init(), then run an endless loop where we pass characters from the serial RX buffer to gcode_parse_char() and check the clocks
+#ifdef SIMULATOR
+int main (int argc, char** argv)
+{
+  sim_start(argc, argv);
+#else
 int main (void)
 {
+#endif
 	init();
 
 	// main loop
@@ -287,6 +270,6 @@ int main (void)
 			gcode_parse_char(c);
 		}
 
-		app_clock();
+		clock();
 	}
 }

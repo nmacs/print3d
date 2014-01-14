@@ -5,11 +5,13 @@
 */
 
 #include	<stdarg.h>
-//#include	<avr/pgmspace.h>
+#ifndef SIMULATOR
+#ifdef __avr__
+#include	<avr/pgmspace.h>
+#endif
+#endif
 
-#include "pgmspace.h"
-
-#include	"teaserial.h"
+#include	"serial.h"
 #include	"sermsg.h"
 
 // void sersendf(char *format, ...) {
@@ -97,14 +99,19 @@
 	\code sersendf_P(PSTR("X:%ld Y:%ld temp:%u.%d flags:%sx Q%su/%su%c\n"), target.X, target.Y, current_temp >> 2, (current_temp & 3) * 25, dda.allflags, mb_head, mb_tail, (queue_full()?'F':(queue_empty()?'E':' '))) \endcode
 */
 
-//- #define HAVE_16BIT
-
-#ifdef HAVE_16BIT
-#define GET_UINT16 uint16_t
-#define GET_INT16  int16_t
+#ifdef SIMULATOR
+  #define GET_ARG(T) (va_arg(args, int))
+  #define GET_UINT16
+  #define GET_INT16
 #else
-#define GET_UINT16 uint32_t
-#define GET_INT16  int32_t
+  #define GET_ARG(T) (va_arg(args, T))
+  #ifdef HAVE_16BIT
+    #define GET_UINT16 uint16_t
+    #define GET_INT16  int16_t
+  #else
+    #define GET_UINT16 uint32_t
+    #define GET_INT16  int32_t
+  #endif
 #endif
 
 void sersendf_P(PGM_P format, ...) {
@@ -124,36 +131,36 @@ void sersendf_P(PGM_P format, ...) {
 					break;
 				case 'u':
 					if (j == 4)
-						serwrite_uint32(va_arg(args, uint32_t));
+            serwrite_uint32(GET_ARG(uint32_t));
 					else
-						serwrite_uint16(va_arg(args, GET_UINT16));
+            serwrite_uint16(GET_ARG(GET_UINT16));
 					j = 0;
 					break;
 				case 'd':
 					if (j == 4)
-						serwrite_int32(va_arg(args, int32_t));
+            serwrite_int32(GET_ARG(uint32_t));
 					else
-						serwrite_int16(va_arg(args, GET_INT16));
+            serwrite_int16(GET_ARG(GET_UINT16));
 					j = 0;
 					break;
 				case 'c':
-					serial_writechar(va_arg(args, GET_UINT16));
+          serial_writechar(GET_ARG(GET_UINT16));
 					j = 0;
 					break;
 				case 'x':
 					serial_writestr_P(PSTR("0x"));
 					if (j == 4)
-						serwrite_hex32(va_arg(args, uint32_t));
+            serwrite_hex32(GET_ARG(uint32_t));
 					else if (j == 1)
-						serwrite_hex8(va_arg(args, GET_UINT16));
+            serwrite_hex8(GET_ARG(GET_UINT16));
 					else
-						serwrite_hex16(va_arg(args, GET_UINT16));
+            serwrite_hex16(GET_ARG(GET_UINT16));
 					j = 0;
 					break;
 /*				case 'p':
-					serwrite_hex16(va_arg(args, uint16_t));*/
+          serwrite_hex16(GET_ARG(uint16_t));*/
 				case 'q':
-					serwrite_int32_vf(va_arg(args, int32_t), 3);
+          serwrite_int32_vf(GET_ARG(uint32_t), 3);
 					j = 0;
 					break;
 				default:
