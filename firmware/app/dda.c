@@ -722,7 +722,9 @@ void dda_clock() {
   if (busy)
     return;
   busy = 1;
+#ifdef __avr__
   sei();
+#endif
 
   // Caution: we mangle step counters here without locking interrupts. This
   //          means, we trust dda isn't changed behind our back, which could
@@ -873,7 +875,9 @@ void dda_clock() {
     }
   #endif
 
+#ifdef __avr__
   cli(); // Compensate sei() above.
+#endif
   busy = 0;
 }
 
