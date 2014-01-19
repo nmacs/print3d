@@ -1,0 +1,40 @@
+[labels]
+
+A3982
+refdes=U?
+! copryright=2014 Max Nekludov
+! author=Max Nekludov
+! uselicense=unlimited
+! distlicense=GPL
+! description=A3982
+! footprint=SOICW24
+
+[left]
+
+1 OUT2A
+2 SENSE2
+3 VBB2
+4 OUT2B
+5 ! ENABLE
+6 PGND
+7 PGND
+8 CP1
+9 CP2
+10 VCP
+11 VREG
+12 MS1
+
+[right]
+
+24 OUT1A
+23 SENSE1
+22 VBB1
+21 OUT1B
+20 DIR
+19 PGND
+18 PGND
+17 REF
+16 STEP
+15 VDD
+14 ROSC
+13 RESET

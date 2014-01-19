@@ -1,0 +1,83 @@
+[labels]
+
+STM32F1DISCOVERY
+refdes=U?
+! copryright=2014 Max Nekludov
+! author=Max Nekludov
+! uselicense=unlimited
+! distlicense=GPL
+! description=STM32F1DISCOVERY Board
+
+[left]
+
+1 GND
+3 3V3
+4 VBAT
+5 PC13
+6 PC14
+7 PC15
+8 PD0
+9 PD1
+10 RST
+11 PC0
+12 PC1
+13 PC2
+14 PC3
+15 PA0
+16 PA1
+17 PA2
+18 PA3
+19 PA4
+20 PA5
+21 PA6
+22 PA7
+23 PC4
+24 PC5
+25 PB0
+26 PB1
+27 PB2
+28 GND
+
+[bottom]
+
+29 PB10
+30 PB11
+31 PB12
+32 PB13
+33 PB14
+34 PB15
+
+[right]
+
+62 GND
+60 5V
+59 PB9
+58 PB8
+57 BOOT
+56 PB7
+55 PB6
+54 PB5
+53 PB4
+52 PB3
+51 PD2
+50 PC12
+49 PC11
+48 PC10
+47 PA15
+46 PA14
+45 PA13
+44 PA12
+43 PA11
+42 PA10
+41 PA9
+40 PA8
+39 PC9
+38 PC8
+37 PC7
+36 PC6
+35 GND
+
+[nc]
+
+2
+61
