@@ -15,7 +15,7 @@
 #include "board.h"
 
 /* Total number of channels to be sampled by a single ADC operation.*/
-#define ADC_GRP1_NUM_CHANNELS   2
+#define ADC_GRP1_NUM_CHANNELS   1
 
 /* Depth of the conversion buffer, channels are sampled four times each.*/
 #define ADC_GRP1_BUF_DEPTH      1
@@ -25,60 +25,42 @@
  */
 static adcsample_t samples[ADC_GRP1_NUM_CHANNELS * ADC_GRP1_BUF_DEPTH];
 
-
 /*
  * ADC conversion group.
  * Mode:        Linear buffer
- * Channels:    IN10   (41.5 cycles sample time)
- *              Sensor (239.5 cycles sample time)
+ * Channels:    IN0   (41.5 cycles sample time)
  */
 static const ADCConversionGroup adcgrpcfg = {
-  FALSE,
-  ADC_GRP1_NUM_CHANNELS,
-  NULL, // adccb,  // callback
-  NULL
-#if 0
-  ,
-  /* HW dependent part.*/
-  0,
-  ADC_CR2_TSVREFE,
-  ADC_SMPR1_SMP_AN10(ADC_SAMPLE_41P5) | ADC_SMPR1_SMP_SENSOR(ADC_SAMPLE_239P5),
-  0,
+  FALSE,                              // Enables the circular buffer mode for the group.
+  ADC_GRP1_NUM_CHANNELS,              // Number of the analog channels belonging to the conversion group.
+  NULL,                               // Callback function associated to the group
+  NULL,                               // Error callback
+  0,                                  // ADC CR1 register initialization data
+  0,                                  // ADC CR2 register initialization data
+  0,                                  // ADC SMPR1 register initialization data
+  ADC_SMPR2_SMP_AN0(ADC_SAMPLE_41P5), // ADC SMPR2 register initialization data
   ADC_SQR1_NUM_CH(ADC_GRP1_NUM_CHANNELS),
   0,
-  ADC_SQR3_SQ2_N(ADC_CHANNEL_IN10) | ADC_SQR3_SQ1_N(ADC_CHANNEL_SENSOR)
-#endif
-
-//STM32F0xx
-	,0 //ADC_CFGR1_RES_10BIT  	// ADC CFGR1 
-	,0						// ADC TR 
-	,0 //ADC_SMPR_SMP_28P5  	// ADC SMPR
-	,(1<<1) | (1<<2)		// ADC CHSELR
-	
+  ADC_SQR3_SQ1_N(ADC_CHANNEL_IN0)
 };
 
 
 
 void analog_init(void)
 {
-	// A1, A2
-
-
   /*
    * Initializes the ADC driver 1.
-   * 
    */
   adcStart(&ADCD1, NULL);
-  //palSetGroupMode(GPIOA, PAL_PORT_BIT(1) | PAL_PORT_BIT(2), 0, PAL_MODE_INPUT_ANALOG);
-	
+  palSetGroupMode(GPIOA, PAL_PORT_BIT(0), 0, PAL_MODE_INPUT_ANALOG);
 }
 
-uint16_t	analog_read(uint8_t index)
+uint16_t analog_read(uint8_t index)
 {
 	msg_t result;
 	
-	result = adcConvert (&ADCD1, &adcgrpcfg, samples, ADC_GRP1_BUF_DEPTH); 
+	result = adcConvert (&ADCD1, &adcgrpcfg, samples, ADC_GRP1_BUF_DEPTH);
 	
 	//TODO
-	return samples[1-index];
+	return samples[index];
 }
