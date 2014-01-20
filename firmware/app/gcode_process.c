@@ -51,6 +51,16 @@ static void SpecialMoveE(int32_t e, uint32_t f) {
 }
 #endif /* E_STARTSTOP_STEPS > 0 */
 
+void emergency_stop(void)
+{
+	power_off();
+	timer_stop();
+	queue_flush();
+	cli();
+	for (;;)
+		wd_reset();
+}
+
 /************************************************************************//**
 
   \brief Processes command stored in global \ref next_target.
@@ -376,13 +386,7 @@ void process_gcode_command() {
 				//? Any moves in progress are immediately terminated, then RepRap shuts down.  All motors and heaters are turned off.
 				//? It can be started again by pressing the reset button on the master microcontroller.  See also M0.
 				//?
-
-				timer_stop();
-				queue_flush();
-				power_off();
-				cli();
-				for (;;)
-					wd_reset();
+				emergency_stop();
 				break;
 
 			case 6:
