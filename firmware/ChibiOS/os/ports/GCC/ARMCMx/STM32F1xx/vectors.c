@@ -229,7 +229,7 @@ vectors_t _vectors = {
  * @notapi
  */
 #if !defined(__DOXYGEN__)
-__attribute__ ((naked))
+__attribute__ ((naked, weak))
 #endif
 void _unhandled_exception(void) {
 
