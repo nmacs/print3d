@@ -184,18 +184,16 @@ void print_queue() {
 /// unexpected things might happen.
 /// \todo effect on startpoint is undefined!
 void queue_flush() {
-
 #ifdef __arm__
   ATOMIC_START
-  mb_tail = mb_head;
-  movebuffer[mb_head].live = 0;
-  setTimer(0);
-  ATOMIC_END
-#else
+#endif
   // if the timer were running, this would require
   // wrapping in ATOMIC_START ... ATOMIC_END.
   mb_tail = mb_head;
   movebuffer[mb_head].live = 0;
+#ifdef __arm__
+  setTimer(0);
+  ATOMIC_END
 #endif
 }
 
