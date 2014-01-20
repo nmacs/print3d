@@ -190,6 +190,10 @@ void io_init(void) {
 		WRITE(SS, 1);					SET_OUTPUT(SS);
 	#endif
 
+	#ifdef TEMP_MAX31855
+		WRITE(SS, 1);					SET_OUTPUT(SS);
+	#endif
+
 	#ifdef TEMP_INTERCOM
 		// Enable the RS485 transceiver
 		SET_OUTPUT(RX_ENABLE_PIN);

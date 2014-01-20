@@ -18,6 +18,10 @@
 #ifdef __avr__
 #include	"arduino.h"
 #endif
+#ifdef __arm__
+#include "ch.h"
+#include "hal.h"
+#endif
 #include	"debug.h"
 #ifndef	EXTRUDER
 	#include	"sersendf.h"
@@ -38,6 +42,8 @@
 #ifdef	TEMP_AD595
 #include	"analog.h"
 #endif
+
+extern void emergency_stop(void);
 
 typedef enum {
 	PRESENT,
@@ -118,6 +124,12 @@ void temp_init() {
 	}
 }
 
+#ifdef TEMP_MAX31855
+#ifdef __arm__
+extern const SPIConfig max31855_spicfg;
+#endif
+#endif
+
 /// called every 10ms from clock.c - check all temp sensors that are ready for checking
 void temp_sensor_tick() {
 	temp_sensor_t i = 0;
@@ -127,8 +139,36 @@ void temp_sensor_tick() {
 		}
 		else {
 			uint16_t	temp = 0;
+			#ifdef	TEMP_MAX31855
+			uint32_t value = 0;
+			#endif
 			//time to deal with this temp sensor
 			switch(temp_sensors[i].temp_type) {
+				#ifdef	TEMP_MAX31855
+				case TT_MAX31855:
+				#ifdef __arm__
+					spiAcquireBus(&MAX31855_BUS);
+					spiStart(&MAX31855_BUS, &max31855_spicfg);
+					spiSelect(&MAX31855_BUS);
+					spiReceive(&MAX31855_BUS, 4, &value);
+					spiUnselect(&MAX31855_BUS);
+					spiReleaseBus(&MAX31855_BUS);
+
+					temp_sensors_runtime[i].temp_flags = 0;
+					if (value & (1 << 16)) {
+						emergency_stop();
+					}
+					else {
+						temp = value >> 18;
+						if (temp & (1 << 13))
+							temp = 0;
+					}
+				#else
+					temp = 0;
+				#endif
+
+					break;
+				#endif
 				#ifdef	TEMP_MAX6675
 				case TT_MAX6675:
 					#ifdef	PRR
@@ -388,7 +428,7 @@ void temp_print(temp_sensor_t index) {
 	else {
 		if (index >= NUM_TEMP_SENSORS)
 			return;
-		sersendf_P(PSTR("T[%su]:"), index);
+		sersendf_P(PSTR("T[%u]:"), index);
 		single_temp_print(index);
 	}
 }

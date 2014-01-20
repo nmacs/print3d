@@ -24,6 +24,7 @@ typedef enum {
 typedef enum {
 	TT_THERMISTOR,
 	TT_MAX6675,
+	TT_MAX31855,
 	TT_AD595,
 	TT_PT100,
 	TT_INTERCOM,
