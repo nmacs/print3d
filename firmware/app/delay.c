@@ -14,6 +14,14 @@
 #error Delay functions only work with F_CPU >= 4000000UL 
 #endif
 
+#ifdef __arm__
+void _delay_loop_2 (uint32_t delay_cycles)
+{
+       //TODO
+       delay_cycles = delay_cycles;
+}
+#endif
+
 /// delay microseconds
 /// \param delay time to wait in microseconds
 void delay_us(uint16_t delay) {
@@ -39,10 +47,3 @@ void delay_ms(uint32_t delay) {
 	delay_us(delay * 1000);
 	wd_reset();
 }
-
-#ifdef __arm__
-void _delay_loop_2 (uint32_t delay_cycles)
-{
-       //TODO
-}
-#endif

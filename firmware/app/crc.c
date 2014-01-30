@@ -7,11 +7,10 @@
 #ifndef SIMULATOR
 #ifdef __arv__
 #include	<util/crc16.h>
-#endif
 #else
-
+static uint16_t _crc16_update(uint16_t crc, uint8_t a);
 // Equivalent to avr-libc's _crc16_update.
-uint16_t _crc16_update(uint16_t crc, uint8_t a) {
+static uint16_t _crc16_update(uint16_t crc, uint8_t a) {
   int i;
   crc ^= a;
   for (i = 0; i < 8; ++i) {
@@ -22,6 +21,7 @@ uint16_t _crc16_update(uint16_t crc, uint8_t a) {
   }
   return crc;
 }
+#endif
 #endif
 
 /** block-at-once CRC16 calculator

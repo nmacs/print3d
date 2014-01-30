@@ -104,7 +104,7 @@ void dda_create(DDA *dda, TARGET *target) {
 	dda->allflags = 0;
 
 	if (DEBUG_DDA && (debug_flags & DEBUG_DDA))
-    sersendf_P(PSTR("\nCreate: X %lq  Y %lq  Z %lq  F %lu\n"),
+    sersendf_P(PSTR("\nCreate: X %li  Y %li  Z %li  F %lu\n"),
                dda->endpoint.X, dda->endpoint.Y,
                dda->endpoint.Z, dda->endpoint.F);
 
@@ -439,7 +439,7 @@ void dda_start(DDA *dda) {
 	// called from interrupt context: keep it simple!
 
   if (DEBUG_DDA && (debug_flags & DEBUG_DDA))
-    sersendf_P(PSTR("Start: X %lq  Y %lq  Z %lq  F %lu\n"),
+    sersendf_P(PSTR("Start: X %li  Y %li  Z %li  F %lu\n"),
                dda->endpoint.X, dda->endpoint.Y,
                dda->endpoint.Z, dda->endpoint.F);
 

@@ -26,7 +26,7 @@
   Found on  http://stackoverflow.com/questions/4144232/
   how-to-calculate-a-times-b-divided-by-c-only-using-32-bit-integer-types-even-i
 */
-const int32_t muldivQR(int32_t multiplicand, uint32_t qn, uint32_t rn,
+int32_t muldivQR(int32_t multiplicand, uint32_t qn, uint32_t rn,
                        uint32_t divisor) {
   uint32_t quotient = 0;
   uint32_t remainder = 0;
@@ -225,7 +225,7 @@ uint16_t int_inv_sqrt(uint16_t a) {
   \param v value to find \f$log_2\f$ of
   \return floor(log(v) / log(2))
 */
-const uint8_t msbloc (uint32_t v) {
+uint8_t msbloc (uint32_t v) {
   uint8_t i;
   uint32_t c;
   for (i = 31, c = 0x80000000; i; i--) {

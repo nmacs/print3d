@@ -78,6 +78,7 @@ static void timer3_Handler(GPTDriver *gptp)
 #ifdef DEBUG_LED_PIN
         TOGGLE(DEBUG_LED_PIN);
 #endif
+        (void)gptp; // unused
 	/*
 	clock stuff
 	*/
@@ -144,6 +145,7 @@ ISR(TIMER1_COMPA_vect) {
 /// step timer
 static void timer1_Handler(GPTDriver *gptp)
 {
+        (void)gptp; // unused
 #ifdef DEBUG2_LED_PIN
         TOGGLE(DEBUG2_LED_PIN);
 #endif
@@ -172,7 +174,6 @@ void timer_init()
 #endif
 #endif
 #ifdef __arm__
-#define TICK_TIME_MS 2
        // start system tick timer
        gptStart (&GPTD3, &gpt3cfg);
        gptStartContinuous (&GPTD3, TICK_TIME_MS * 1000);
@@ -267,6 +268,7 @@ void setTimer(uint32_t delay)
   #endif
 #endif
 #ifdef __arm__
+       extern int dbg_is_isr(void);
 #define DIV (F_CPU/1000000)
        timer1_interval = delay / DIV;
        if (dbg_is_isr())

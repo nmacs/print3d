@@ -426,7 +426,7 @@ void dda_join_moves(DDA *prev, DDA *current) {
       int32_t down2 = ACCELERATE_RAMP_LEN(prev_F) - ACCELERATE_RAMP_LEN(crossF);
 
       // Test if both the ramp up and ramp down fit within the move
-      if(up2+down2 > prev_total_steps) {
+      if(up2+down2 > (int32_t)prev_total_steps) {
         int32_t diff = (up2 + down2 - (int32_t)prev_total_steps) / 2;
         up2 -= diff;
         down2 -= diff;

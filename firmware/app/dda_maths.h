@@ -7,7 +7,7 @@
 
 // return rounded result of multiplicand * multiplier / divisor
 // this version is with quotient and remainder precalculated elsewhere
-const int32_t muldivQR(int32_t multiplicand, uint32_t qn, uint32_t rn,
+int32_t muldivQR(int32_t multiplicand, uint32_t qn, uint32_t rn,
                        uint32_t divisor);
 
 // return rounded result of multiplicand * multiplier / divisor
@@ -64,7 +64,7 @@ uint16_t int_inv_sqrt(uint16_t a);
 
 // this is an ultra-crude pseudo-logarithm routine, such that:
 // 2 ^ msbloc(v) >= v
-const uint8_t msbloc (uint32_t v);
+uint8_t msbloc (uint32_t v);
 
 // Note: the floating point bit is optimized away during compilation
 #define ACCELERATE_RAMP_LEN(speed) (((speed)*(speed)) / (uint32_t)((7200000.0f * ACCELERATION) / (float)STEPS_PER_M_X))
