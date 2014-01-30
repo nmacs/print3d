@@ -19,6 +19,10 @@
 	8. Appendix A - PWMable pins and mappings
 */
 
+#ifndef TEACUP__INTERNAL__
+#include "iofuncs.h"
+#endif
+
 /***************************************************************************\
 *                                                                           *
 * 1. MECHANICAL/HARDWARE                                                    *
@@ -210,21 +214,13 @@
 	internal pullup resistors
 		the ATmega has internal pullup resistors on it's input pins which are counterproductive with the commonly used eletronic endstops, so they should be switched off. For other endstops, like mechanical ones, you may want to uncomment this.
 */
-//#define USE_INTERNAL_PULLUPS
+#define USE_INTERNAL_PULLUPS
 
 /*
 	user defined pins
 	adjust to suit your electronics,
 	or adjust your electronics to suit this
 */
-
-#define PIN_DEF(port,pin) (port)<<5 | (pin)
-#define GET_PORT(port_pin) ((port_pin)>>5)
-#define GET_PIN(port_pin) ((port_pin)&0x1F)
-
-#define PORT_A 0
-#define PORT_B 1
-#define PORT_C 2
 
 #define	X_STEP_PIN						PIN_DEF (PORT_A, 1)
 #define	X_DIR_PIN						PIN_DEF (PORT_A, 2)
@@ -263,6 +259,7 @@
 #define	E_INVERT_ENABLE
 
 #define	PS_ON_PIN						PIN_DEF (PORT_C, 3)
+#define PS_INVERT_ON
 //#define	STEPPER_ENABLE_PIN		PIN_DEF (PORT_A, 3)
 //#define	STEPPER_INVERT_ENABLE
 
@@ -270,7 +267,11 @@
 #define GREEN_LED_PIN					        PIN_DEF (PORT_C, 9)
 
 #define DEBUG_LED_PIN                                           GREEN_LED_PIN
-#define DEBUG2_LED_PIN                                          BLUE_LED_PIN
+//#define DEBUG2_LED_PIN                                          BLUE_LED_PIN
+
+#define POWER_LED_PIN                                           BLUE_LED_PIN
+
+//#define HALT_ON_TERMOCOUPLE_FAILURE
 
 
 /***************************************************************************\
@@ -337,12 +338,22 @@
 
 #define PIN_ADC1 PIN_DEF(PORT_A, 0)
 #ifdef TEMP_MAX31855
-	#define SS PIN_DEF(PORT_B, 12)
+
+#define SS    PIN_DEF(PORT_B, 12)
+#define SSCK  PIN_DEF(PORT_B, 13)
+#define SMISO PIN_DEF(PORT_B, 14)
+#define SMOSI PIN_DEF(PORT_B, 15)
+
+#ifndef TEACUP__INTERNAL__
+struct max31855_plat_data;
+extern struct max31855_plat_data extruder_sensor;
 #endif
 
-//                 name       type            pin        additional
-DEFINE_TEMP_SENSOR(bed,       TT_THERMISTOR,  PIN_ADC1,  THERMISTOR_BED)
-DEFINE_TEMP_SENSOR(extruder,  TT_MAX31855,    0,         0)
+#endif
+
+//                 name       type            pin        additional      plat_data
+DEFINE_TEMP_SENSOR(bed,       TT_THERMISTOR,  PIN_ADC1,  THERMISTOR_BED, 0)
+DEFINE_TEMP_SENSOR(extruder,  TT_MAX31855,    0,         0,              &extruder_sensor)
 // "noheater" is a special name for a sensor which doesn't have a heater.
 // Use "M105 P#" to read it, where # is a zero-based index into this list.
 // DEFINE_TEMP_SENSOR(noheater,  TT_THERMISTOR,  1,            0)
@@ -396,8 +407,8 @@ DEFINE_TEMP_SENSOR(extruder,  TT_MAX31855,    0,         0)
 #endif
 
 //            name      port_pin              pwm   config (1=inverted)
-DEFINE_HEATER(extruder, PIN_DEF(PORT_B, 8),   0,    1)
-DEFINE_HEATER(bed,      PIN_DEF(PORT_B, 9),   0,    1)
+DEFINE_HEATER(bed,      PIN_DEF(PORT_B, 9),   0,    0)
+DEFINE_HEATER(extruder, PIN_DEF(PORT_B, 8),   0,    0)
 // DEFINE_HEATER(fan,      PINB4, 1)
 // DEFINE_HEATER(chamber,  PIND7, 1)
 // DEFINE_HEATER(motor,    PIND6, 1)
