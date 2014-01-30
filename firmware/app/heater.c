@@ -50,10 +50,12 @@ typedef struct {
 #define DEFINE_HEATER(name, pin, pwm, config) { pin, 0, pwm, config },
 #define INVERTED_OUTPUT_FLAG  1
 #endif
+#define TEACUP__INTERNAL__
 static const heater_definition_t heaters[NUM_HEATERS] =
 {
 	#include	"config.h"
 };
+#undef TEACUP__INTERNAL__
 #undef DEFINE_HEATER
 
 /**
@@ -300,7 +302,9 @@ void heater_init() {
 #ifdef __arm__
                 #define DEFINE_HEATER(name, pin, pwm, config) WRITE(pin, 0); SET_OUTPUT(pin);
 #endif
+#define TEACUP__INTERNAL__
 			#include "config.h"
+#undef TEACUP__INTERNAL__
 		#undef DEFINE_HEATER
 	} while (0);
 }

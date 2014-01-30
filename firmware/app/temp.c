@@ -21,6 +21,7 @@
 #ifdef __arm__
 #include "ch.h"
 #include "hal.h"
+#include "max31855.h"
 #endif
 #include	"debug.h"
 #ifndef	EXTRUDER
@@ -52,10 +53,11 @@ typedef enum {
 
 /// holds metadata for each temperature sensor
 typedef struct {
-	temp_type_t temp_type; ///< type of sensor
-	uint8_t     temp_pin;  ///< pin that sensor is on
-	heater_t    heater;    ///< associated heater if any
-	uint8_t		additional; ///< additional, sensor type specifc config
+	temp_type_t temp_type;  ///< type of sensor
+	uint8_t     temp_pin;   ///< pin that sensor is on
+	heater_t    heater;     ///< associated heater if any
+	uint8_t     additional; ///< additional, sensor type specifc config
+	void *      plat_data;  ///< platform specific data
 } temp_sensor_definition_t;
 
 #undef DEFINE_TEMP_SENSOR
@@ -65,15 +67,17 @@ typedef struct {
 #define DEFINE_TEMP_SENSOR(name, type, pin, additional) { (type), (pin ## _ADC), (HEATER_ ## name), (additional) },
 #endif
 #ifdef __arm__
-#define DEFINE_TEMP_SENSOR(name, type, pin, additional) { (type), (pin), (HEATER_ ## name), (additional) },
+#define DEFINE_TEMP_SENSOR(name, type, pin, additional, data) { (type), (pin), (HEATER_ ## name), (additional), (data) },
 #endif
 #else
 #define DEFINE_TEMP_SENSOR(name, type, pin, additional) { (type), (TEMP_SENSOR_ ## name), (HEATER_ ## name), (additional) },
 #endif
+#define TEACUP__INTERNAL__
 static const temp_sensor_definition_t temp_sensors[NUM_TEMP_SENSORS] =
 {
 	#include	"config.h"
 };
+#undef TEACUP__INTERNAL__
 #undef DEFINE_TEMP_SENSOR
 
 /// this struct holds the runtime sensor data- read temperatures, targets, etc
@@ -125,6 +129,7 @@ void temp_init() {
 }
 
 #ifdef TEMP_MAX31855
+#define SWAP_UINT32(x) (((x) >> 24) | (((x) & 0x00FF0000) >> 8) | (((x) & 0x0000FF00) << 8) | ((x) << 24))
 #ifdef __arm__
 extern const SPIConfig max31855_spicfg;
 #endif
@@ -141,22 +146,28 @@ void temp_sensor_tick() {
 			uint16_t	temp = 0;
 			#ifdef	TEMP_MAX31855
 			uint32_t value = 0;
+			struct max31855_plat_data *max31855;
 			#endif
 			//time to deal with this temp sensor
 			switch(temp_sensors[i].temp_type) {
 				#ifdef	TEMP_MAX31855
 				case TT_MAX31855:
 				#ifdef __arm__
-					spiAcquireBus(&MAX31855_BUS);
-					spiStart(&MAX31855_BUS, &max31855_spicfg);
-					spiSelect(&MAX31855_BUS);
-					spiReceive(&MAX31855_BUS, 4, &value);
-					spiUnselect(&MAX31855_BUS);
-					spiReleaseBus(&MAX31855_BUS);
+				        max31855 = (struct max31855_plat_data*)temp_sensors[i].plat_data;
+					spiAcquireBus(max31855->bus);
+					spiStart(max31855->bus, max31855->config);
+					spiSelect(max31855->bus);
+					spiReceive(max31855->bus, 4, &value);
+					spiUnselect(max31855->bus);
+					spiReleaseBus(max31855->bus);
+
+					value = SWAP_UINT32(value);
 
 					temp_sensors_runtime[i].temp_flags = 0;
 					if (value & (1 << 16)) {
+                                        #ifdef HALT_ON_TERMOCOUPLE_FAILURE
 						emergency_stop();
+                                        #endif
 					}
 					else {
 						temp = value >> 18;

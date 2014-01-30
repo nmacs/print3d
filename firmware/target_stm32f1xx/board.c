@@ -20,6 +20,8 @@
 
 #include "ch.h"
 #include "hal.h"
+#include "config.h"
+#include "max31855.h"
 
 #if HAL_USE_PAL || defined(__DOXYGEN__)
 /**
@@ -76,14 +78,25 @@ bool_t mmc_lld_is_write_protected(MMCDriver *mmcp) {
 void boardInit(void) {
 	SET_OUTPUT(BLUE_LED_PIN);
 	SET_OUTPUT(GREEN_LED_PIN);
+
+	palSetPadMode(GPIOB, 13, PAL_MODE_STM32_ALTERNATE_PUSHPULL);     /* SCK. */
+	palSetPadMode(GPIOB, 14, PAL_MODE_STM32_ALTERNATE_PUSHPULL);     /* MISO.*/
+	palSetPadMode(GPIOB, 15, PAL_MODE_STM32_ALTERNATE_PUSHPULL);     /* MOSI.*/
 }
 
-const SPIConfig max31855_spicfg = {
+static const SPIConfig extruder_sensor_spicfg = {
   NULL,
   GPIOB,
   12,
   SPI_CR1_BR_2 | SPI_CR1_BR_1
 };
+
+struct max31855_plat_data extruder_sensor = {
+    .bus = &SPID2,
+    .config = &extruder_sensor_spicfg,
+};
+
+
 
 extern void emergency_stop(void);
 

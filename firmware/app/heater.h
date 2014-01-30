@@ -2,7 +2,7 @@
 #define	_HEATER_H
 
 #include "config.h"
-#include	<stdint.h>
+#include <stdint.h>
 #include "simulator.h"
 #include "temp.h"
 
@@ -13,12 +13,14 @@
 #ifdef __arm__
 #define DEFINE_HEATER(name, pin, pwm, config) HEATER_ ## name,
 #endif
+#define TEACUP__INTERNAL__
 typedef enum
 {
 	#include "config.h"
 	NUM_HEATERS,
 	HEATER_noheater
 } heater_t;
+#undef TEACUP__INTERNAL__
 #undef DEFINE_HEATER
 
 void heater_init(void);

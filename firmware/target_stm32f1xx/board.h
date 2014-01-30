@@ -19,12 +19,6 @@
  */
 #define STM32F10X_MD_VL
 
-#include "ch.h"
-#include "hal.h"
-#include "iofuncs.h"
-
-#define MAX31855_BUS SPID2
-
 /*
  * IO pins assignments.
  */
