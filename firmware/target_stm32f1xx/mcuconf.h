@@ -51,7 +51,8 @@
 #define STM32_PLLXTPRE                      STM32_PLLXTPRE_DIV1
 #define STM32_PLLMUL_VALUE                  3
 #define STM32_HPRE                          STM32_HPRE_DIV1
-#define STM32_PPRE                          STM32_PPRE_DIV1
+#define STM32_PPRE1                         STM32_PPRE1_DIV1
+#define STM32_PPRE2                         STM32_PPRE2_DIV1
 #define STM32_ADCSW                         STM32_ADCSW_HSI14
 #define STM32_ADCPRE                        STM32_ADCPRE_DIV2
 #define STM32_MCOSEL                        STM32_MCOSEL_NOCLOCK
