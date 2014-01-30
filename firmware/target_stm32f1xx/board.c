@@ -20,6 +20,7 @@
 
 #include "ch.h"
 #include "hal.h"
+#include "iofuncs.h"
 #include "config.h"
 #include "max31855.h"
 
@@ -79,16 +80,20 @@ void boardInit(void) {
 	SET_OUTPUT(BLUE_LED_PIN);
 	SET_OUTPUT(GREEN_LED_PIN);
 
-	palSetPadMode(GPIOB, 13, PAL_MODE_STM32_ALTERNATE_PUSHPULL);     /* SCK. */
-	palSetPadMode(GPIOB, 14, PAL_MODE_STM32_ALTERNATE_PUSHPULL);     /* MISO.*/
-	palSetPadMode(GPIOB, 15, PAL_MODE_STM32_ALTERNATE_PUSHPULL);     /* MOSI.*/
+	palSetPadMode(GET_PORT(SSCK), 13, PAL_MODE_STM32_ALTERNATE_PUSHPULL);     /* SCK. */
+	palSetPadMode(GET_PORT(SMISO), 14, PAL_MODE_STM32_ALTERNATE_PUSHPULL);    /* MISO.*/
+	palSetPadMode(GET_PORT(SMOSI), 15, PAL_MODE_STM32_ALTERNATE_PUSHPULL);    /* MOSI.*/
 }
 
 static const SPIConfig extruder_sensor_spicfg = {
   NULL,
-  GPIOB,
-  12,
-  SPI_CR1_BR_2 | SPI_CR1_BR_1
+  GET_PORT(SS),
+  GET_PIN(SS),
+#if (STM32_PCLK1 == 24000000)
+  SPI_CR1_BR_2 | SPI_CR1_BR_1 // F = (Fapb2 = 24MHz) / (128) = 187.5 kHz
+#else
+#error "Unknown clock"
+#endif
 };
 
 struct max31855_plat_data extruder_sensor = {
