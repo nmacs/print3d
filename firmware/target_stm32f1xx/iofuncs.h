@@ -46,11 +46,22 @@
 // Defines
 // --------------------------------------------------------------------------
 
+#define PIN_DEF(port,pin) (port)<<5 | (pin)
+#define GET_PORTN(port_pin) ((port_pin)>>5)
+#define GET_PIN(port_pin) ((port_pin)&0x1F)
+
+#define PORT_A 0
+#define PORT_B 1
+#define PORT_C 2
+
+#define GET_PORT(port_pin) (GET_PORTN(port_pin) == PORT_A ? GPIOA : (GET_PORTN(port_pin) == PORT_B ? GPIOB : GPIOC))
+
 // --------------------------------------------------------------------------
 // Types
 // --------------------------------------------------------------------------
 
 typedef uint8_t port_t;
+
 // --------------------------------------------------------------------------
 // Public Variables
 // --------------------------------------------------------------------------

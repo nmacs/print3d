@@ -90,86 +90,33 @@
 // target specific
 void WRITE (port_t port_pin, uint8_t val)
 {
-	switch (GET_PORT(port_pin))
-	{
-	case 0: 
-		palWritePad (GPIOA, GET_PIN(port_pin), val);
-		break;
-	case 1:
-		palWritePad (GPIOB, GET_PIN(port_pin), val);
-		break;
-	case 2:
-		palWritePad (GPIOC, GET_PIN(port_pin), val);
-		break;
-	}	
+        palWritePad (GET_PORT(port_pin), GET_PIN(port_pin), val);
 }
 
 uint8_t READ (port_t port_pin)
 {
-	switch (GET_PORT(port_pin))
-	{
-	case 0: 
-		return palReadPad (GPIOA, GET_PIN(port_pin));
-		break;
-	case 1:
-		return palReadPad (GPIOB, GET_PIN(port_pin));
-		break;
-	case 2:
-		return palReadPad (GPIOC, GET_PIN(port_pin));
-		break;
-	}	
+        return palReadPad (GET_PORT(port_pin), GET_PIN(port_pin));
 }
 
 void TOGGLE (port_t port_pin)
 {
-	switch (GET_PORT(port_pin))
-	{
-	case 0: 
-		palTogglePad (GPIOA, GET_PIN(port_pin));
-		break;
-	case 1:
-		palTogglePad (GPIOB, GET_PIN(port_pin));
-		break;
-	case 2:
-		palTogglePad (GPIOC, GET_PIN(port_pin));
-		break;
-	}	
+        palTogglePad (GET_PORT(port_pin), GET_PIN(port_pin));
 }
 
 void SET_OUTPUT(port_t port_pin)
 {
-	switch (GET_PORT(port_pin))
-	{
-	case 0: 
-		palSetPadMode (GPIOA, GET_PIN(port_pin), PAL_MODE_OUTPUT_PUSHPULL);
-		break;
-	case 1:
-		palSetPadMode (GPIOB, GET_PIN(port_pin), PAL_MODE_OUTPUT_PUSHPULL);
-		break;
-	case 2:
-		palSetPadMode (GPIOC, GET_PIN(port_pin), PAL_MODE_OUTPUT_PUSHPULL);
-		break;
-	}	
+        palSetPadMode (GET_PORT(port_pin), GET_PIN(port_pin), PAL_MODE_OUTPUT_PUSHPULL);
 }
 
 void SET_INPUT(port_t port_pin)
 {
-	switch (GET_PORT(port_pin))
-	{
-	case 0: 
-		palSetPadMode (GPIOA, GET_PIN(port_pin), PAL_MODE_INPUT_PULLUP);
-		break;
-	case 1:
-		palSetPadMode (GPIOB, GET_PIN(port_pin), PAL_MODE_INPUT_PULLUP);
-		break;
-	case 2:
-		palSetPadMode (GPIOC, GET_PIN(port_pin), PAL_MODE_INPUT_PULLUP);
-		break;
-	}	
+        palSetPadMode(GET_PORT(port_pin), GET_PIN(port_pin), PAL_MODE_INPUT_PULLUP);
 }
 
 //
 void PWM_SET_VALUE (uint8_t channel, uint16_t width)
 {
+        channel = channel;
+        width = width;
 	//TODO
 }
