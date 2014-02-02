@@ -779,6 +779,27 @@ void process_gcode_command() {
 				break;
 
 			#endif /* DEBUG */
+				
+			#ifdef PID_AUTOTUNE
+			case 303:
+				//? --- M303: PID autotune ---
+				//? Perform pid autotune procedure.
+				//? Hotend Usage: M303 S<temperature> C<cycles> Bed Usage: M303 E-1 C<cycles> S<temperature> Example: M303 C8 S175
+			{
+				uint32_t temp = 150*4;
+				int32_t e = 0;
+				uint32_t c = 8;
+				
+				if (next_target.seen_E)
+					e = next_target.target.E;
+				if (e < 0)
+					temp = 70;
+				
+				if (next_target.seen_S) temp = next_target.S;
+				if (next_target.seen_C) c = next_target.C;
+				PID_autotune(temp, e, c);
+			}
+			#endif
 
 				// unknown mcode: spit an error
 			default:

@@ -165,7 +165,7 @@ void gcode_parse_char(uint8_t c) {
 					// if this is temperature, multiply by 4 to convert to quarter-degree units
 					// cosmetically this should be done in the temperature section,
 					// but it takes less code, less memory and loses no precision if we do it here instead
-					if ((next_target.M == 104) || (next_target.M == 109) || (next_target.M == 140))
+					if ((next_target.M == 104) || (next_target.M == 109) || (next_target.M == 140) || (next_target.M == 303)
 						next_target.S = decfloat_to_int(&read_digit, 4);
 					// if this is heater PID stuff, multiply by PID_SCALE because we divide by PID_SCALE later on
 					else if ((next_target.M >= 130) && (next_target.M <= 132))
@@ -189,6 +189,11 @@ void gcode_parse_char(uint8_t c) {
 					next_target.N = decfloat_to_int(&read_digit, 1);
 					if (DEBUG_ECHO && (debug_flags & DEBUG_ECHO))
 						serwrite_uint32(next_target.N);
+					break;
+				case 'C':
+					next_target.C = read_digit.mantissa;
+					if (DEBUG_ECHO && (debug_flags & DEBUG_ECHO))
+						serwrite_uint32(next_target.C);
 					break;
 				case '*':
 					next_target.checksum_read = decfloat_to_int(&read_digit, 1);
@@ -268,6 +273,9 @@ void gcode_parse_char(uint8_t c) {
           break;
         case 'N':
           next_target.seen_N = 1;
+          break;
+        case 'C':
+          next_target.seen_C = 1;
           break;
         case '*':
           next_target.seen_checksum = 1;

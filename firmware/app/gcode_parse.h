@@ -35,6 +35,7 @@ typedef struct {
 		uint8_t					seen_P	:1;
 		uint8_t					seen_T	:1;
 		uint8_t					seen_N	:1;
+		uint8_t					seen_C	:1;
 		uint8_t					seen_checksum				:1; ///< seen a checksum?
 		uint8_t					seen_semi_comment		:1; ///< seen a semicolon?
 		uint8_t					seen_parens_comment	:1; ///< seen an open parenthesis
@@ -43,12 +44,13 @@ typedef struct {
 		uint8_t					option_inches				:1; ///< inches or millimeters?
 	};
 
-	uint8_t						G;				///< G command number
-	uint8_t						M;				///< M command number
+	uint32_t						G;				///< G command number
+	uint32_t						M;				///< M command number
 	TARGET						target;		///< target position: X, Y, Z, E and F
 
 	int16_t						S;				///< S word (various uses)
 	uint16_t					P;				///< P word (various uses)
+	uint16_t					C;				///< C word (various uses)
 
 	uint8_t						T;				///< T word (tool index)
 
