@@ -99,11 +99,11 @@ struct {
 #endif
 
 /// default scaled P factor, equivalent to 8.0
-#define		DEFAULT_P				8192
+#define		DEFAULT_P				4096
 /// default scaled I factor, equivalent to 0.5
-#define		DEFAULT_I				512
+#define		DEFAULT_I				16
 /// default scaled D factor, equivalent to 24
-#define		DEFAULT_D				24576
+#define		DEFAULT_D				(1024*16)
 /// default scaled I limit
 #define		DEFAULT_I_LIMIT	384
 
