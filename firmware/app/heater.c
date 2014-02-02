@@ -35,7 +35,7 @@ typedef struct {
 #ifdef __arm__
 	port_t   port_pin;
 	uint8_t  channel;
-	uint8_t  pwm_mode;
+	uint8_t  pwm;
 	uint8_t  config;
 #endif
 } heater_definition_t;
@@ -460,8 +460,8 @@ void heater_set(heater_t index, uint8_t value) {
 	}
 #endif
 #ifdef __arm__
-	if (heaters[index].pwm_mode) {
-
+	if (heaters[index].pwm) {
+	        PWM_SET_VALUE(heaters[index].port_pin, value);
 	}
 #endif
 	else {
@@ -470,14 +470,14 @@ void heater_set(heater_t index, uint8_t value) {
 			*(heaters[index].heater_port) |= MASK(heaters[index].heater_pin);
 #endif
 #ifdef __arm__
-		        WRITE (heaters[index].port_pin, (heaters[index].config & INVERTED_OUTPUT_FLAG) ? 0 : 1);
+			WRITE (heaters[index].port_pin, (heaters[index].config & INVERTED_OUTPUT_FLAG) ? 0 : 1);
 #endif
 		else
 #ifdef __avr__
 			*(heaters[index].heater_port) &= ~MASK(heaters[index].heater_pin);
 #endif
 #ifdef __arm__
-                        WRITE (heaters[index].port_pin, (heaters[index].config & INVERTED_OUTPUT_FLAG) ? 1 : 0);
+			WRITE (heaters[index].port_pin, (heaters[index].config & INVERTED_OUTPUT_FLAG) ? 1 : 0);
 #endif
 	}
 

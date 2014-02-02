@@ -406,9 +406,15 @@ DEFINE_TEMP_SENSOR(extruder,  TT_MAX31855,    0,         0,              &extrud
 	#define DEFINE_HEATER(...)
 #endif
 
+//#define BED_PIN       PIN_DEF(PORT_B, 9)
+//#define EXTRUDER_PIN  PIN_DEF(PORT_B, 8)
+
+#define BED_PIN       PIN_DEF_PWM(PORT_B, 9, 0)
+#define EXTRUDER_PIN  PIN_DEF_PWM(PORT_B, 8, 1)
+
 //            name      port_pin              pwm   config (1=inverted)
-DEFINE_HEATER(bed,      PIN_DEF(PORT_B, 9),   0,    0)
-DEFINE_HEATER(extruder, PIN_DEF(PORT_B, 8),   0,    0)
+DEFINE_HEATER(bed,      BED_PIN,              1,    0)
+DEFINE_HEATER(extruder, EXTRUDER_PIN,         1,    0)
 // DEFINE_HEATER(fan,      PINB4, 1)
 // DEFINE_HEATER(chamber,  PIND7, 1)
 // DEFINE_HEATER(motor,    PIND6, 1)

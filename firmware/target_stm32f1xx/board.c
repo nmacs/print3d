@@ -77,6 +77,8 @@ bool_t mmc_lld_is_write_protected(MMCDriver *mmcp) {
  * @todo    Add your board-specific code, if any.
  */
 void boardInit(void) {
+        iofuncsInit();
+
 	SET_OUTPUT(BLUE_LED_PIN);
 	SET_OUTPUT(GREEN_LED_PIN);
 

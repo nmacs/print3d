@@ -46,21 +46,36 @@
 // Defines
 // --------------------------------------------------------------------------
 
-#define PIN_DEF(port,pin) (port)<<5 | (pin)
-#define GET_PORTN(port_pin) ((port_pin)>>5)
-#define GET_PIN(port_pin) ((port_pin)&0x1F)
+// 5 bits - pin number
+// 3 bits - port number
+//
+
+#define PIN_OFFSET  0
+#define PIN_MASK    (0x1F << PIN_OFFSET)
+
+#define PORT_OFFSET 5
+#define PORT_MASK   (0x7 << PORT_OFFSET)
+
+#define PWM_OFFSET  8
+#define PWM_MASK    (0x7 << PWM_OFFSET)
+
+#define PIN_DEF(port, pin)                     (((pin) << PIN_OFFSET) | ((port) << PORT_OFFSET))
+#define PIN_DEF_PWM(port, pin, pwm)            (((pin) << PIN_OFFSET) | ((port) << PORT_OFFSET) | ((pwm) << PWM_OFFSET))
+
+#define GET_PORTN(port_pin)                    (((port_pin) & PORT_MASK) >> PORT_OFFSET)
+#define GET_PORT(port_pin)                     (GET_PORTN(port_pin) == PORT_A ? GPIOA : (GET_PORTN(port_pin) == PORT_B ? GPIOB : GPIOC))
+#define GET_PIN(port_pin)                      (((port_pin) & PIN_MASK) >> PIN_OFFSET)
+#define GET_PWM(port_pin)                      (((port_pin) & PWM_MASK) >> PWM_OFFSET)
 
 #define PORT_A 0
 #define PORT_B 1
 #define PORT_C 2
 
-#define GET_PORT(port_pin) (GET_PORTN(port_pin) == PORT_A ? GPIOA : (GET_PORTN(port_pin) == PORT_B ? GPIOB : GPIOC))
-
 // --------------------------------------------------------------------------
 // Types
 // --------------------------------------------------------------------------
 
-typedef uint8_t port_t;
+typedef unsigned port_t;
 
 // --------------------------------------------------------------------------
 // Public Variables
@@ -69,6 +84,8 @@ typedef uint8_t port_t;
 // --------------------------------------------------------------------------
 // Public functions
 // --------------------------------------------------------------------------
+
+void iofuncsInit(void);
 
 void WRITE (port_t port_pin, uint8_t val);
 
@@ -80,8 +97,7 @@ void SET_OUTPUT(port_t port_pin);
 
 void SET_INPUT(port_t port_pin);
 
-//
-void PWM_SET_VALUE (uint8_t channel, uint16_t width);
+void PWM_SET_VALUE (port_t port_pin, uint8_t value);
 
 // --------------------------------------------------------------------------
 //
